@@ -1,0 +1,14 @@
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/Sustainable-Hospital-Cs.GeneratedMSBuildEditorConfig.editorconfig
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/Sustainable-Hospital-Cs.AssemblyInfoInputs.cache
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/Sustainable-Hospital-Cs.AssemblyInfo.cs
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/Sustainable-Hospital-Cs.csproj.CoreCompileInputs.cache
+/home/nikolaj/study/Sustainable-Hospital-Cs/bin/Debug/net9.0/Sustainable-Hospital-Cs
+/home/nikolaj/study/Sustainable-Hospital-Cs/bin/Debug/net9.0/Sustainable-Hospital-Cs.deps.json
+/home/nikolaj/study/Sustainable-Hospital-Cs/bin/Debug/net9.0/Sustainable-Hospital-Cs.runtimeconfig.json
+/home/nikolaj/study/Sustainable-Hospital-Cs/bin/Debug/net9.0/Sustainable-Hospital-Cs.dll
+/home/nikolaj/study/Sustainable-Hospital-Cs/bin/Debug/net9.0/Sustainable-Hospital-Cs.pdb
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/Sustainable-Hospital-Cs.dll
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/refint/Sustainable-Hospital-Cs.dll
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/Sustainable-Hospital-Cs.pdb
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/Sustainable-Hospital-Cs.genruntimeconfig.cache
+/home/nikolaj/study/Sustainable-Hospital-Cs/obj/Debug/net9.0/ref/Sustainable-Hospital-Cs.dll
