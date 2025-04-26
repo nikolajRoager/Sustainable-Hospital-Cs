@@ -2,6 +2,7 @@ using System.Data;
 using System.Text.RegularExpressions;
 using System.Reflection.Metadata;
 using OfficeOpenXml;
+using FuzzySharp;
 
 namespace RegexProductFinder
 {
@@ -49,18 +50,22 @@ namespace RegexProductFinder
 
                             if (cellValue != null && x != header_ingredient && x != header_category && x != header_keyword)
                             {
-                                //The word ingredient may be included in category
-                                if ( CategoryRegex.IsMatch(cellValue.ToString().Trim()))
+                                string? sv = cellValue.ToString();
+                                if (sv != null)
                                 {
-                                    header_category=x;
-                                }
-                                else if (IngredientRegex.IsMatch(cellValue.ToString().Trim()))
-                                {
-                                    header_ingredient=x;
-                                }
-                                else if (KeywordRegex.IsMatch(cellValue.ToString().Trim()))
-                                {
-                                    header_keyword=x;
+                                    //The word ingredient may be included in category
+                                    if ( CategoryRegex.IsMatch(sv.Trim()))
+                                    {
+                                        header_category=x;
+                                    }
+                                    else if (IngredientRegex.IsMatch(sv.Trim()))
+                                    {
+                                        header_ingredient=x;
+                                    }
+                                    else if (KeywordRegex.IsMatch(sv.Trim()))
+                                    {
+                                        header_keyword=x;
+                                    }
                                 }
                             }
                         }
@@ -83,17 +88,25 @@ namespace RegexProductFinder
                     ProductPairs = new();
                     for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
                     {
-                        var newPair = new RegexProductPair(worksheet.Cells[i, header_category].Value.ToString().Trim(),worksheet.Cells[i, header_ingredient].Value.ToString().Trim(),worksheet.Cells[i, header_keyword].Value.ToString().Trim());
-                        
-                        //Because of the compare functions in the pair, this only looks for identical keyword
-                        //Just tell the human that it happened, there is no way the program can know which pair is correct.
-                        if (ProductPairs.Contains(newPair ))
-                            Console.WriteLine("Advarsel: \""+newPair.keyword+"\" duplikeret!, ignorer seneste indgang i "+filePath);
-                        else
-                            ProductPairs.Add(newPair);
+                        //I don't think this ever is null (in my tests at least), I just save them to silence compiler warnings
+                        var catString =worksheet.Cells[i, header_category].Value.ToString();
+                        var ingString =worksheet.Cells[i, header_ingredient].Value.ToString();
+                        var keyString =worksheet.Cells[i, header_keyword].Value.ToString();
+                        if (catString!=null && ingString!=null && keyString!=null)
+                        {
+                            var newPair = new RegexProductPair(catString.Trim(),ingString.Trim(),keyString.Trim());
+                            
+                            //Because of the compare functions in the pair, this only looks for identical keyword
+                            //Just tell the human that it happened, there is no way the program can know which pair is correct.
+                            if (ProductPairs.Contains(newPair ))
+                                Console.WriteLine("Advarsel: \""+newPair.keyword+"\" duplikeret!, ignorer seneste indgang i "+filePath);
+                            else
+                                ProductPairs.Add(newPair);
+                        }
                     }
                 }
             }
-        }   
+        }
     }
+
 }
