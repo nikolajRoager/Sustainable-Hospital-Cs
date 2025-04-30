@@ -84,15 +84,15 @@ public class SynonymDictionary
                         continue;
                     
                     //If the entry for these words don't already exist, make it exist
-                    if (!synonyms.ContainsKey(key))
-                        synonyms.Add(key, new HashSet<string>(new string[]{synonym}));
+                    if (!synonyms.ContainsKey(key.ToLower()))
+                        synonyms.Add(key.ToLower(), new HashSet<string>(new string[]{synonym}));
                     else
-                        synonyms[key].Add(synonym);
+                        synonyms[key.ToLower()].Add(synonym);
                     //If A is B then B is A
-                    if (!synonyms.ContainsKey(synonym))
-                        synonyms.Add(synonym, new HashSet<string>(new string[]{key}));
+                    if (!synonyms.ContainsKey(synonym.ToLower()))
+                        synonyms.Add(synonym.ToLower(), new HashSet<string>(new string[]{key}));
                     else
-                        synonyms[synonym].Add(key);
+                        synonyms[synonym.ToLower()].Add(key.ToLower());
                 }
             }
 
@@ -101,11 +101,12 @@ public class SynonymDictionary
         /// <summary>
         /// Get all potential synonyms of this string, by looking for any matching synonyms anywhere
         /// ISSUE: this only matches the FIRST instance of a synonym, this is GOOD ENOUGH in this case
+        /// ISSUE fuzzy text search is highly unreliable, finding ridiculously broad matches
         /// Synonyms will NOT be checked in the middle of words, for instance the word "som" (which in Danish) will not be substituted with "grism" even though "so" (female pig) is a possible synonym with "gris" (pig) (According to Den Danske Ordbog)
         /// </summary>
         /// <param name="input">A string which can be a sentence, or a single word</param>
         /// <returns>List of strings which mean the same</returns>
-        public List<string> getSimilar(string input)
+        public List<string> getSimilar(string input, bool fuzzy=false)
         {
             List<string> similar= new List<string>();
 
@@ -115,7 +116,6 @@ public class SynonymDictionary
             List<(int,int)> substrings=new();
             //First split into words, this makes us ignore non-word caracters like punctuation
             string[] words = Regex.Split(input, @"\W");
-            Console.WriteLine(""+words.Length);
             int id0=0;
             for (int i = 0; i < words.Length; ++i)
             {
@@ -124,82 +124,79 @@ public class SynonymDictionary
                 {
                     substrings.Add((id0,id1+words[j].Length-id0));
                     id1+=words[j].Length;
-                    Console.WriteLine(input.Substring(id0,id1-id0));
                     id1+=1;
                 } 
                 id0+=1+words[i].Length;
             }
-            return similar;
-            
-            //We have to loop through all synonyms, and check if they are contained within the input
-            foreach (string Key in synonyms.Keys)
+
+            //Now loop through
+            foreach ( (int start, int length) in substrings)
             {
-                //Id and length of the best match, if any
-                int id;
-                int length;
-                //No need to do a fuzzy search, if there is an exact match
-                if (input.Contains(Key))
+                //Use fuzzy text comparison when looking for synonyms (SLOOOW)
+                if (fuzzy)
                 {
-                    id = input.IndexOf(Key);
-                    length = input.Length - id;
+                    var bestMatch = Process.ExtractOne(input.Substring(start,length).ToLower(),synonyms.Keys,null,null,1);
+                    if (bestMatch!=null && bestMatch.Score>=90)
+                    {
+                        //Close enough! add all synonyms
+                        foreach (string Replacement in synonyms[bestMatch.Value])
+                        {
+                            similar.Add(input.Substring(0,start)+Replacement+input.Substring(start+length));
+                        }
+                    }
                 }
+                //Only look for synonyms with literal match
                 else
                 {
-                    
-                    id = 0;
-                    length = input.Length;
-                }
+                    string toReplace =input.Substring(start,length).ToLower();
+                    if (synonyms.Keys.Contains(toReplace))
+                        foreach (string Replacement in synonyms[toReplace])
+                        {
+                            similar.Add(input.Substring(0,start)+Replacement+input.Substring(start+length));
+                        }
 
-                //Synonyms can not be found inside words, so if this is not at the start, check that there isn't another letter in front
-                if (id>0)
-                {
-                    //If this is part of a word, skip it
-                    char C =input[id-1];
-                    if (Char.IsLetter(C))
-                        continue;
                 }
-                if (id+length<input.Length)
-                {
-                    //If this is part of a word in the other direction, skip it
-                    char C =input[id+length];
-                    if (Char.IsLetter(C))
-                        continue;
-                }
-
-                string sub = input.Substring(id,length);
-
-                foreach (string Replacement in synonyms[Key])
-                {
-                    similar.Add(input.Substring(0,id)+Replacement+input.Substring(id+length));
-                }
-                
             }
-
-
             return similar;
         }
         /// <summary>
-        /// Return true if <paramref name="That"/> is synonymous with <paramref name="That"/>?
+        /// Return true if <paramref name="That"/> is the same as <paramref name="That"/>?
         /// </summary>
         /// <param name="This"></param>
-        /// One word
-        /// <param name="That"></param>
-        /// <returns></returns> <summary>
-        /// 
-        /// </summary>
-        /// <param name="This"></param>
-        /// Other word
-        /// <param name="That"></param>
-        /// <returns></returns>
-        public bool IsSame(string This, string That)
+        /// One string to compare
+        /// <param name="That">
+        /// Other string to compare
+        /// </param>
+        /// <param name="synonym">
+        /// Look for synonyms (signficantly slower), default true
+        /// </param>
+        /// <param name="fuzzy">
+        /// Use fuzzy text comparison (slower, and at the moment so broad as to be borderline useless), default false
+        /// </param>
+        /// <returns></returns> 
+        public bool IsSame(string This, string That,bool synonym=true,bool fuzzy=false)
         {
-            //Finvalsede havregryn = 
-            //Find the best match in the keys
+            if (!synonym && !fuzzy)
+                return This.ToLower().Equals(That.ToLower());
+            if (!synonym && fuzzy)
+            {
+                return Fuzz.Ratio(This, That)>=90;
+            }
+            else
+            {
+                //Get all different ways of writing this or that, and compare them to each other
+                var SimilarToThis = getSimilar(This,fuzzy);
+                SimilarToThis.Add(This);
+                var SimilarToThat = getSimilar(That,fuzzy);
+                SimilarToThat.Add(That);
 
-            var Out = Process.ExtractTop(This, synonyms.Keys);
-            foreach (var w in Out)
-                Console.WriteLine($"{w.Index} {w.Score} {w.Value}");
-            return false;
+                foreach (var A in SimilarToThis)
+                    foreach (var B in SimilarToThat)
+                        if (A.ToLower().Equals(B.ToLower()))
+                        {
+                            return true;
+                        }
+                return false;
+            }
         }
-
 }

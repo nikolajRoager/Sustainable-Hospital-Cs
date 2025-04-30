@@ -16,14 +16,80 @@ namespace RegexProductFinder
         /// </summary>
         public SortedSet<RegexProductPair> ProductPairs;
 
-        
         /// <summary>
-        ///Load library from an Excel file 
+        /// Sets with all categories added, used to check for duplicates/synonyms
         /// </summary>
-        public RegexProductLibrary(string filePath)
+        HashSet<string> ingredients;
+
+        /// <summary>
+        /// Sets with all ingredients added, used to check for duplicates/synonyms
+        /// </summary>
+        HashSet<string> categories;
+        
+
+        /// <summary>
+        ///Load library from saved training file
+        /// </summary>
+        public RegexProductLibrary(SynonymDictionary synonymDictionary)
         {
+            ingredients =new HashSet<string>();
+            categories=new HashSet<string>();
+            ProductPairs = new();
+
+            //Now save this to userdata
+            string UserdataPath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SustainableHospital");
+            string  SavedLibrary = Path.Combine(UserdataPath,"ProduktLibrary.tsv");
+
+            if (!Path.Exists(SavedLibrary))
+            {
+                throw new ArgumentException("Fil "+SavedLibrary+" med indlæst produktbibliotek ikke; programmet skal køres i træning mode først.");
+            }
+            
+            try
+            {
+            foreach (string line in File.ReadLines(SavedLibrary))
+            {
+                string[] splitted=line.Split('\t');
+
+                RegexProductPair newPair;
+                
+                try
+                {
+                    newPair = new RegexProductPair(splitted[0],splitted[1],splitted[2]);
+                }
+                catch (Exception ex)
+                {
+                    throw new ArgumentException($"  Kunne ikke læse Regex "+splitted[2]+$" fejlmeddelelse: "+ex.Message);
+                }
+
+                ProductPairs.Add(newPair);
+                ingredients.Add(newPair.ingredient);
+                categories.Add(newPair.category);
+            }
+            }
+            catch (Exception ex)
+            {
+                throw new ArgumentException("Kunne ikke indlæse "+SavedLibrary+" : "+ex.Message);
+            }
+        }
+
+        /// <summary>
+        ///Load library from an Excel file
+        /// </summary>
+        public RegexProductLibrary(string filePath,SynonymDictionary synonymDictionary)
+        {
+            ConsoleColor OriginalColor = Console.ForegroundColor;
+
+            ingredients =new HashSet<string>();
+            categories=new HashSet<string>();
+
+            //What replacements do we need to make?
+            Dictionary<string,string> categoryReplacement = new Dictionary<string,string>();
+            Dictionary<string,string> ingredientReplacement = new Dictionary<string,string>();
+
             if (!File.Exists(filePath))
             {
+                Console.ForegroundColor = OriginalColor;
                 throw new ArgumentException("Fil "+filePath+" ikke fundet!");
             }
             else
@@ -53,7 +119,6 @@ namespace RegexProductFinder
                                 string? sv = cellValue.ToString();
                                 if (sv != null)
                                 {
-                                    //The word ingredient may be included in category
                                     if ( CategoryRegex.IsMatch(sv.Trim()))
                                     {
                                         header_category=x;
@@ -83,30 +148,230 @@ namespace RegexProductFinder
                     }
 
                     if (header_ingredient==0 || header_category==0 || header_keyword==0)
+                    {
+                        Console.ForegroundColor = OriginalColor;
                         throw new ArgumentException("Tabel Header Søgeord, Kategori, og Råvare ikke fundet i "+filePath);
+                    }
+
 
                     ProductPairs = new();
                     for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
                     {
-                        //I don't think this ever is null (in my tests at least), I just save them to silence compiler warnings
-                        var catString =worksheet.Cells[i, header_category].Value.ToString();
-                        var ingString =worksheet.Cells[i, header_ingredient].Value.ToString();
-                        var keyString =worksheet.Cells[i, header_keyword].Value.ToString();
-                        if (catString!=null && ingString!=null && keyString!=null)
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                        //There are many ways an entry can register as empty, either one of the cell or the string value will register as null, or it will have length 0
+                        //We wil throw an exception if any of those happen
+                        var catCell=worksheet.Cells[i, header_category].Value;
+                        if (catCell==null)
                         {
-                            var newPair = new RegexProductPair(catString.Trim(),ingString.Trim(),keyString.Trim());
-                            
-                            //Because of the compare functions in the pair, this only looks for identical keyword
-                            //Just tell the human that it happened, there is no way the program can know which pair is correct.
-                            if (ProductPairs.Contains(newPair ))
-                                Console.WriteLine("Advarsel: \""+newPair.keyword+"\" duplikeret!, ignorer seneste indgang i "+filePath);
-                            else
-                                ProductPairs.Add(newPair);
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   Kategori manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
                         }
+                        var catString=catCell.ToString();
+                        if (catString==null)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   Kategori manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        var ingCell=worksheet.Cells[i, header_ingredient].Value;
+                        if (ingCell==null)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   ingrediens manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        var ingString=ingCell.ToString();
+                        if (ingString==null)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   ingrediens manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        var keyCell=worksheet.Cells[i, header_keyword].Value;
+                        if (keyCell==null)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   søgeord manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        var keyString=keyCell.ToString();
+                        if (keyString==null)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   søgeord manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        if (ingString.Length==0)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   ingrediens manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        if (keyString.Length==0)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   søgeord manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        if (catString.Length==0)
+                        {
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"   kategori manglede i række {i} i "+filePath+" ignorerer linje");
+                            continue;
+                        }
+                        Console.ForegroundColor = OriginalColor;
+
+
+                        RegexProductPair newPair;
+                        
+                        try
+                        {
+                            newPair = new RegexProductPair(catString.Trim(),ingString.Trim(),keyString.Trim());
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine($"  Kunne ikke læse Regex "+keyString+$" på linje {i}, fejlmeddelelse: "+ex.Message+", ignorerer linje");
+                            continue;
+                        }
+
+                        //Check if ingredient or category need to be replaced
+
+                        //If this is a thing we already have been told to replace, use the other version
+                        if (ingredientReplacement.ContainsKey(newPair.ingredient))
+                            newPair.ingredient=ingredientReplacement[newPair.ingredient];
+                        if (!ingredients.Contains(newPair.ingredient))
+                        {
+                            bool alreadyExists = false;
+                            var synonyms = synonymDictionary.getSimilar(newPair.ingredient);
+                            foreach (var synonym in synonyms)
+                            {
+                                if (ingredients.Contains(synonym))
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.Write($"Advarsel:");
+                                    Console.ForegroundColor = OriginalColor;
+                                    Console.WriteLine("   den automatiske tekstgenkendelse er i tvivl om råvarene "+newPair.ingredient+" og "+synonym+$" er det samme.\nPå linje {i} er produktet \""+newPair.keyword+"\" med råvare \""+newPair.ingredient+"\".\nHvad skal vi gøre?\n  1 erstat råvare "+newPair.ingredient+" med "+synonym+"\n  2 erstat råvare "+synonym+" med "+newPair.ingredient+"\n  3 opret "+newPair.ingredient+" som ny råvare.\nSkriv tal, afslut med Enter");
+                                    Console.ForegroundColor = OriginalColor;
+                                    int number = 'Q';
+                                    while (number!='1' && number!='2' && number!='3')
+                                    {
+                                        number = Console.Read();
+                                    }
+                                    if (number=='1')
+                                    {
+                                        alreadyExists = true;
+                                        //This will replace all future
+                                        ingredientReplacement.Add(newPair.ingredient,synonym);
+                                        newPair.ingredient=synonym;
+                                    }
+                                    else if (number=='2')
+                                    {
+                                        //This will replace all future
+                                        ingredientReplacement.Add(synonym,newPair.ingredient);
+                                        //Also replace all old versions of the old
+                                        foreach(var oldPair in ProductPairs)
+                                            if (oldPair.ingredient==synonym)
+                                                oldPair.ingredient=newPair.ingredient;
+                                        ingredients.Remove(synonym);
+                                    }
+                                    break;
+                                }
+                            }
+                            if (!alreadyExists)
+                            {
+                                ingredients.Add(newPair.ingredient);
+                            }
+                        }
+                        //If this is a thing we already have been told to replace, use the other version
+                        if (categoryReplacement.ContainsKey(newPair.category))
+                            newPair.category=categoryReplacement[newPair.category];
+                        if (!categories.Contains(newPair.category))
+                        {
+                            bool alreadyExists = false;
+                            var synonyms = synonymDictionary.getSimilar(newPair.category);
+                            foreach (var synonym in synonyms)
+                            {
+                                if (categories.Contains(synonym))
+                                {
+                                    Console.ForegroundColor = ConsoleColor.Yellow;
+                                    Console.Write($"Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine("   den automatiske tekstgenkendelse er i tvivl om kategorierne "+newPair.category+" og "+synonym+$" er det samme.\nPå linje {i} er produktet \""+newPair.keyword+"\" med kategori \""+newPair.category+"\".\nHvad skal vi gøre?\n  1 erstat kategori "+newPair.category+" med "+synonym+"\n  2 erstat kategori "+synonym+" med "+newPair.category+"\n  3 opret "+newPair.category+" som ny kategori.\nSkriv tal, afslut med Enter");
+                                    Console.ForegroundColor = OriginalColor;
+                                    int number = 'Q';
+                                    while (number!='1' && number!='2' && number!='3')
+                                    {
+                                        number = Console.Read();
+                                    }
+                                    if (number=='1')
+                                    {
+                                        alreadyExists = true;
+                                        //This will replace all future
+                                        categoryReplacement.Add(newPair.category,synonym);
+                                        newPair.category=synonym;
+                                    }
+                                    else if (number=='2')
+                                    {
+                                        //This will replace all future
+                                        categoryReplacement.Add(synonym,newPair.category);
+                                        //Also replace all old versions of the old
+                                        foreach(var oldPair in ProductPairs)
+                                            if (oldPair.category==synonym)
+                                                oldPair.category=newPair.category;
+                                        categories.Remove(synonym);
+                                    }
+                                    break;
+                                }
+                            }
+                            if (!alreadyExists)
+                            {
+                                categories.Add(newPair.category);
+                            }
+                        }
+                        Console.ForegroundColor = ConsoleColor.Yellow;
+                        //Because of the compare functions in the pair, this only looks for identical keyword
+                        //Just tell the human that it happened, there is no way the program can know which pair is correct.
+                        if (ProductPairs.Contains(newPair ))
+                        {
+                            Console.WriteLine("Advarsel:");
+                            Console.ForegroundColor = OriginalColor;
+                            Console.WriteLine("   \""+newPair.keyword+"\" duplikeret!, ignorer seneste indgang i "+filePath);
+                        }
+                        else
+                            ProductPairs.Add(newPair);
+                        Console.ForegroundColor = OriginalColor;
                     }
                 }
             }
+
+            //Now save this to userdata
+            string UserdataPath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SustainableHospital");
+            //Create the directory if it doesn't exist
+            Directory.CreateDirectory(UserdataPath);
+            string  SavedLibrary = Path.Combine(UserdataPath,"ProduktLibrary.tsv");
+            Console.WriteLine("Information, gemmer til "+ SavedLibrary);
+            
+            //Save to a file so we can easilly load it again
+            using (StreamWriter writer = new StreamWriter(SavedLibrary))
+            {
+                //Write every product pair to the file
+                foreach (var pair in ProductPairs)
+                    writer.WriteLine($"{pair.category}\t{pair.ingredient}\t{pair.keyword}");
+            }
+
         }
     }
-
 }
