@@ -18,7 +18,8 @@ static class Program
         
         [Option('t',"train", HelpText = "Run in training mode; will be overwritten and forced to true if an input tabel is included")]
         public bool trainMode{get; set;} =false;
-
+        [Option('r',"regexHeaders", HelpText = "excel file with regices to find headers",Default ="RegexHeaders.xlsx")]
+        public string regexHeaders{get; set;} = "RegexHeaders.xlsx";
     }
     static void Main(string[] args)
     {
@@ -29,7 +30,8 @@ static class Program
             
             SynonymDictionary synonyms;
             RegexProductFinder.RegexProductLibrary regexProductLibrary;
-            
+            RegexExcelAnalyzer analyzer;
+
             if (o.trainMode)
             {
 
@@ -38,6 +40,7 @@ static class Program
                 {
                     synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
                     regexProductLibrary = new (o.productLibrary,synonyms);
+                    analyzer = new (o.regexHeaders,synonyms);
                 }
                 catch (Exception ex)
                 {
@@ -53,6 +56,7 @@ static class Program
                 {
                     synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
                     regexProductLibrary = new (synonyms);
+                    analyzer = new (o.regexHeaders,synonyms);
                 }
                 catch (Exception ex)
                 {

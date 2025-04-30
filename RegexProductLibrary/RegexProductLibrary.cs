@@ -26,7 +26,6 @@ namespace RegexProductFinder
         /// </summary>
         HashSet<string> categories;
         
-
         /// <summary>
         ///Load library from saved training file
         /// </summary>
