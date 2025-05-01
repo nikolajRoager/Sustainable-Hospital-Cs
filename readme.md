@@ -41,10 +41,9 @@ The different customers obviously use different names for the same things, and t
 | Battleship |  3     |   0.3      |
 | Cat        |  2     |   0.8      |
 
-Some idiots might even include some information in the same column, i.e. someone could write ("4 Preteens (60kg)") in the product name column
+Some people might even include some information in the same column, i.e. someone could write ("4 Preteens (60kg)") in the product name column, and we will have to figure out if those 60 kg are the mass of one preteen, or the mass of all 4 of them.
 
-
-This is done, in part, by looking for obvious headers, and in part by analyzing the content of the cells, 
+To analyze the data, the program simply looks at every row, and tries to classify them based on their content, using the RegexStringAnalyzer class, which identifies the names of products, integers, floating numbers, and masses directly in a string
 
 CREDITS and LICENSES
 =====

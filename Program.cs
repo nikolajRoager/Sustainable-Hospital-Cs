@@ -30,7 +30,7 @@ static class Program
             
             SynonymDictionary synonyms;
             RegexProductFinder.RegexProductLibrary regexProductLibrary;
-            RegexExcelAnalyzer analyzer;
+            RegexStringAnalyzer analyzer;
 
             if (o.trainMode)
             {
@@ -41,7 +41,7 @@ static class Program
                     synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
                     regexProductLibrary = new (o.productLibrary,synonyms);
                     //Just load the regex analyzer, this throws errors if it fails
-                    analyzer = new (o.regexHeaders,synonyms);
+                    analyzer = new (o.regexHeaders,synonyms,regexProductLibrary );
                 }
                 catch (Exception ex)
                 {
@@ -57,7 +57,7 @@ static class Program
                 {
                     synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
                     regexProductLibrary = new (synonyms);
-                    analyzer = new (o.regexHeaders,synonyms);
+                    analyzer = new (o.regexHeaders,synonyms,regexProductLibrary);
                 }
                 catch (Exception ex)
                 {
@@ -66,6 +66,18 @@ static class Program
                     return;
                 }
 
+
+                analyzer.Analyze("Forårsløg - Skiver 2mm (1kg)");
+                analyzer.Analyze("Agurk - Tern 10x10mm (5kg)");
+                analyzer.Analyze("Agurk - Tern 10x10mm (5,000.00kg)");
+                analyzer.Analyze("Agurk - Tern 10x10mm (5,000kg)");
+                analyzer.Analyze("Agurk - Tern 10x10mm (50.00kg)");
+                analyzer.Analyze("5231-5");
+                analyzer.Analyze("5");
+                analyzer.Analyze("8.00");
+                analyzer.Analyze("40.00");
+                analyzer.Analyze("2,500.50");
+                
             }
         });
         return;

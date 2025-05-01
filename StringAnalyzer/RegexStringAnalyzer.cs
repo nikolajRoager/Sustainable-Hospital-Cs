@@ -3,11 +3,14 @@ using System.Text.RegularExpressions;
 using System.Reflection.Metadata;
 using OfficeOpenXml;
 using FuzzySharp;
+using System;
+using System.Globalization;
+using RegexProductFinder;
 
 /// <summary>
-/// A class which analyzes the user supplied excel files, and figures out where the columns are 
+/// A class which analyzes excel strings, and guesses whether the string is a part of a header, empty, or if it contains product names, mass, quantity or generic numbers
 /// </summary>
-class RegexExcelAnalyzer
+class RegexStringAnalyzer
 {
     //Ideally, we will recognize what things are, based on the name given to the column, by searching for these kind of names:
 
@@ -24,16 +27,27 @@ class RegexExcelAnalyzer
     public List<Regex> QuantityCNames {get; set;}
 
     //A few words which indicate that something refers to totality, for example total mass
-    public List<Regex> total {get; set;}
-    public List<Regex> single {get; set;}
+    public List<Regex> totalRegices {get; set;}
+    public List<Regex> singleRegices {get; set;}
 
     /// <summary>
     /// For searching for mass, either in the header or in the name themself, these are a few different unit names and their mass in kg
     /// </summary>
     public Dictionary<Regex, double> MassUnitNames {get; set;}
 
-    public RegexExcelAnalyzer(string ExcelRegexPath,SynonymDictionary dictionary)
+
+//Integer, not part of decimal using negative lookbehind
+    public static Regex findInteger = new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?!.\d)");
+//Decimal marker .;  , may be used to divide thousands (optional)
+    public static Regex findDecimal =new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:,\d{3})+|\d+).?\d+(?!\d)");
+    
+    private SynonymDictionary dictionary;
+    private RegexProductLibrary library;
+
+    public RegexStringAnalyzer(string ExcelRegexPath,SynonymDictionary dictionary, RegexProductLibrary lib)
     {
+        this.dictionary = dictionary;
+        this.library = lib;
         if (!File.Exists(ExcelRegexPath))
         {
             throw new ArgumentException("Fil "+ExcelRegexPath+" ikke fundet!");
@@ -48,8 +62,8 @@ class RegexExcelAnalyzer
                 NrCNames  = new();
                 MassKgNames  = new();
                 QuantityCNames  = new();
-                total  = new();
-                single = new();
+                totalRegices  = new();
+                singleRegices = new();
                 MassUnitNames = new();
 
                 //I am just assuming that the variables are at column 1, from row 2 to 6
@@ -105,7 +119,7 @@ class RegexExcelAnalyzer
                                 {
                                     string? str = worksheet.Cells[y,x].Value.ToString();
                                     if (str!=null)
-                                        single.Add(new Regex(str));
+                                        singleRegices.Add(new Regex(str));
 
                                 }
                                 break;
@@ -114,7 +128,7 @@ class RegexExcelAnalyzer
                                 {
                                     string? str = worksheet.Cells[y,x].Value.ToString();
                                     if (str!=null)
-                                        total.Add(new Regex(str));
+                                        totalRegices.Add(new Regex(str));
 
                                 }
                                 break;
@@ -135,6 +149,8 @@ class RegexExcelAnalyzer
                     //We will paste the regex for this kg into another regex, which selects whatever is just before, because that is the way most western languages works
                     //For example if there is 5kg we select 5 (if the string is kg)
                     regex_str =@"\b\d+(?:\.\d+)?(?=\s?"+worksheet.Cells[y,1].Value.ToString()+@"\b)" ;
+
+
                     string? unit_str =worksheet.Cells[y,2].Value.ToString();
                     if (regex_str!=null && unit_str!=null)
                     {
@@ -157,5 +173,142 @@ class RegexExcelAnalyzer
                 //the variable name is on the left,
             }
         }
+
+        
+    }
+
+
+    public AnalyzedString Analyze(string input)
+    {
+        //The steps to analyzing a string is the following: 
+        //Check if it is empty (break early),
+        //Check if it is only a single number (break early),
+        //Check if the string matches any known header,
+        //Check if the string matches any known product
+        //Check if the string contains mass pattern with number
+
+
+        if (string.IsNullOrEmpty(input))
+            return new AnalyzedString();//Returns 100% filler
+
+        //Check if it is just a plain integer or a plain decimal
+        var style = NumberStyles.AllowThousands | NumberStyles.AllowDecimalPoint;
+        var culture = CultureInfo.InvariantCulture;
+        if (int.TryParse(input, style, culture, out int myIntValue))
+        {
+            return new AnalyzedString(myIntValue);
+        }
+        else if (double.TryParse(input, style, culture, out double myDoubleValue))
+        {
+            return new AnalyzedString(myDoubleValue);
+        }
+        else
+        {
+            //Ok, now use regex to check if we match masses directly in the text
+            foreach ((Regex massRegex,double massKg) in MassUnitNames)
+            {
+                var match =(massRegex.Match(input));
+                if (match.Success)
+                {
+                    double mass;
+                    if (!double.TryParse(match.Value, style, culture,out mass))
+                    {
+                        //It should be a double, if not ignore it
+                        continue;
+                    }
+                    //Convert to kg if need be
+                    mass*=massKg;
+                    Console.WriteLine(input+"->"+mass+" kg");
+                    //Then let us check if there are any words indicating it might be mass per unit
+                    bool singleFound = false;
+
+                    foreach (Regex Single in singleRegices)
+                    {
+                        if (Single.IsMatch(input))
+                        {
+                            singleFound=true;
+                            break;
+                        }
+                    }
+                    bool totalFound = false;
+
+                    foreach (Regex Total in totalRegices)
+                    {
+                        if (Total.IsMatch(input))
+                        {
+                            totalFound =true;
+                            break;
+                        }
+                    }
+
+                    //Ok, also check if there are any of our target words in here
+                    regexProductLibrary.
+
+                    if (singleFound == totalFound)
+                    {
+                        return new AnalyzedString{
+        filler=0,
+        //Give both the same weight
+        containsTotalMass=10,
+        containsSingleMass=10,
+        isInteger =0,
+        isDecimal= 0,
+        intValue =0,
+        doubleValue=mass,
+        ProductName=(int)mass,
+        productNameHeader=0,
+        NrHeader=0,
+        SingleMassHeader=0,
+        TotalMassHeader=0,
+        QuantityHeader=0,    
+                        };
+                    }
+                    else if (singleFound && !totalFound)
+                    {
+                        return new AnalyzedString{
+        filler=0,
+        //It could still be single, but propably not
+        containsTotalMass=10,
+        containsSingleMass=5,
+        isInteger =0,
+        isDecimal= 0,
+        intValue =0,
+        doubleValue=mass,
+        ProductName=(int)mass,
+        productNameHeader=0,
+        NrHeader=0,
+        SingleMassHeader=0,
+        TotalMassHeader=0,
+        QuantityHeader=0,    
+                        };
+                    }
+                    
+                    else if (!singleFound && totalFound)
+                    {
+                        return new AnalyzedString{
+        filler=0,
+        //It could still be single, but propably not
+        containsTotalMass=5,
+        containsSingleMass=10,
+        isInteger =0,
+        isDecimal= 0,
+        intValue =0,
+        doubleValue=mass,
+        ProductName=(int)mass,
+        productNameHeader=0,
+        NrHeader=0,
+        SingleMassHeader=0,
+        TotalMassHeader=0,
+        QuantityHeader=0,    
+                        };
+                    }
+                    
+                }
+            }
+        }
+
+        //I guess it must be filler
+        return new AnalyzedString();//Returns 100% filler
+        
     }
 }
