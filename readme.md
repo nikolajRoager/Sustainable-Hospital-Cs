@@ -26,26 +26,22 @@ The greatest challenge is analyzing excel documents with different format, and e
 The different customers obviously use different names for the same things, and they may split up the tables over multiple different tables, like this:
 
 
-| cantina 1 |        |            |
-| --------- | ------ | ---------- |
-| product   | amount | total kg   |
-| --------- | ------ | ---------- |
-| Foo       |  1     |   2.4      |
-| Bar       |  2     |   4.5      |
-| Baz       |  3     |   0.2      |
-| Dim       |  5     |   2.0      |
-| --------- | ------ | ---------- |
-|           |        |            |
-| --------- | ------ | ---------- |
-| cantina 2 |        |            |
-| --------- | ------ | ---------- |
-| product   | amount | total kg   |
-| --------- | ------ | ---------- |
-| Thru      |  1     |  10.0      |
-| Dorthym   |  2     |   4.0      |
-| Blariph   |  3     |   0.3      |
-| Dim       |  2     |   0.8      |
+| cantina 1  |        |            |
+| ---------- | ------ | ---------- |
+| product    | amount | total kg   |
+| CVN        |  1     |   2.4      |
+| F35        |  2     |   4.5      |
+| Car        |  3     |   0.2      |
+| Cat        |  5     |   2.0      |
+|            |        |            |
+| cantina 2  |        |            |
+| product    | amount | total kg   |
+| Trireme    |  1     |  10.0      |
+| Spain      |  2     |   4.0      |
+| Battleship |  3     |   0.3      |
+| Cat        |  2     |   0.8      |
 
+Some idiots might even include some information in the same column, i.e. someone could write ("4 Preteens (60kg)") in the product name column
 
 
 This is done, in part, by looking for obvious headers, and in part by analyzing the content of the cells, 
