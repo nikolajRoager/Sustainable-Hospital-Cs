@@ -8,4 +8,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="commandlineparser" Version="2.9.1" />
+    <PackageReference Include="EPPlus" Version="8.0.2" />
+    <PackageReference Include="FuzzySharp" Version="2.0.2" />
+  </ItemGroup>
+
 </Project>
