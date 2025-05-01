@@ -40,6 +40,7 @@ static class Program
                 {
                     synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
                     regexProductLibrary = new (o.productLibrary,synonyms);
+                    //Just load the regex analyzer, this throws errors if it fails
                     analyzer = new (o.regexHeaders,synonyms);
                 }
                 catch (Exception ex)

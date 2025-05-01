@@ -133,6 +133,7 @@ class RegexExcelAnalyzer
                     try
                     {
                     //We will paste the regex for this kg into another regex, which selects whatever is just before, because that is the way most western languages works
+                    //For example if there is 5kg we select 5 (if the string is kg)
                     regex_str =@"\b\d+(?:\.\d+)?(?=\s?"+worksheet.Cells[y,1].Value.ToString()+@"\b)" ;
                     string? unit_str =worksheet.Cells[y,2].Value.ToString();
                     if (regex_str!=null && unit_str!=null)

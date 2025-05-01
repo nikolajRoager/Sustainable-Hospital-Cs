@@ -1,5 +1,7 @@
 New Sustainable Hospital, C#
 =========
+Portion of this software uses third party packages and resources, see credit and licenses at the end of this document.
+
 A new implementation of Sustainable hospital, this program merges Excel documents, storing products used by different cantinas at various hospitals, with the purpose of tracking Carbon emissions.
 
 
@@ -17,6 +19,20 @@ The Synonym dictionary included with this program is `ddo-synonyms.csv` provided
 
 The file is a CSV file, where a word or phrase is separated from its synonyms by a tab `'\t'` (I would have saved that as .tsv, but this is how it was supplied by DSL). Synonyms are separated by `';'` Paranthesis indicate optional words. The file MUST be in alphabetic order! 
 
+Detecting and merging Excel columns
+-------------------
+The greatest challenge is analyzing excel documents with different format, and extracting the required data.
+
+The different customers obviously use different names for the same things, and they may split up the tables over multiple different tables, like this:
+
+
++-------------+
+|             |
+|             |
++-------------+
+
+
+This is done, in part, by looking for obvious headers, and in part by analyzing the content of the cells, 
 
 CREDITS and LICENSES
 =====
