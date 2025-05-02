@@ -61,6 +61,10 @@
             "commandlineparser": {
               "target": "Package",
               "version": "[2.9.1, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.9.3, )"
             }
           },
           "imports": [
