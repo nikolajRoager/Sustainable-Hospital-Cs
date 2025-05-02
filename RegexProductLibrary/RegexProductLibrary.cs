@@ -44,7 +44,7 @@ namespace RegexProductFinder
 
             if (!Path.Exists(SavedLibrary))
             {
-                throw new ArgumentException("Fil "+SavedLibrary+" med indlæst produktbibliotek ikke; programmet skal køres i træning mode først.");
+                throw new ArgumentException("Fil "+SavedLibrary+" med indlæst produktbibliotek ikke fundet; programmet skal køres i træning mode først.");
             }
             
             try
