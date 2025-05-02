@@ -57,7 +57,11 @@ static class Program
                 {
                     synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
                     regexProductLibrary = new (synonyms);
+                    var result = regexProductLibrary.GetMatch("Peberfrugt Gul Strimler");
+                    Console.WriteLine(result.category+";"+result.ingredient+";"+result.keyword);
+
                     analyzer = new (o.regexHeaders,synonyms);
+
                 }
                 catch (Exception ex)
                 {

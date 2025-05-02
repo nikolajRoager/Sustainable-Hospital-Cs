@@ -11,6 +11,8 @@ namespace RegexProductFinder
     /// </summary>
     public class RegexProductLibrary
     {
+        SynonymDictionary synonymDictionary;
+
         /// <summary>
         ///The product pairs, sorted by priority, so highest priority keywords come first 
         /// </summary>
@@ -31,6 +33,7 @@ namespace RegexProductFinder
         /// </summary>
         public RegexProductLibrary(SynonymDictionary synonymDictionary)
         {
+            this.synonymDictionary = synonymDictionary;
             ingredients =new HashSet<string>();
             categories=new HashSet<string>();
             ProductPairs = new();
@@ -77,6 +80,7 @@ namespace RegexProductFinder
         /// </summary>
         public RegexProductLibrary(string filePath,SynonymDictionary synonymDictionary)
         {
+            this.synonymDictionary = synonymDictionary;
             ConsoleColor OriginalColor = Console.ForegroundColor;
 
             ingredients =new HashSet<string>();
@@ -371,6 +375,25 @@ namespace RegexProductFinder
                     writer.WriteLine($"{pair.category}\t{pair.ingredient}\t{pair.keyword}");
             }
 
+        }
+
+        /// <summary>
+        /// Return the best match of the input, best in this case means longest, as that is more specific 
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public RegexProductPair? GetMatch(string input)
+        {
+            foreach (var pair in ProductPairs)
+            {
+                if (pair.keyRegex.IsMatch(input))
+                {
+                    
+                    //This is the longest, since we have sorted the pairs in order of size
+                    return pair;
+                }
+            }
+            return null;
         }
     }
 }
