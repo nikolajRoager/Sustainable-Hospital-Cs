@@ -1,7 +1,14 @@
 # Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
+[Dd]ebug/*
+[Dd]ebugPublic/*
+[Rr]elease/*
+[Bb]in/*
+[Oo]bj/*
+[Ll]og/*
+
+Tests/[Dd]ebug/*
+Tests/[Dd]ebugPublic/*
+Tests/[Rr]elease/*
+Tests/[Bb]in/*
+Tests/[Oo]bj/*
+Tests/[Ll]og/*
