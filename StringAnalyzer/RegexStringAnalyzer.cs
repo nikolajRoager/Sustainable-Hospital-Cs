@@ -242,8 +242,6 @@ class RegexStringAnalyzer
                     }
 
                     //Ok, also check if there are any of our target words in here
-                    regexProductLibrary.
-
                     if (singleFound == totalFound)
                     {
                         return new AnalyzedString{
