@@ -3,7 +3,7 @@ namespace Services
     /// <summary>
     /// A fake File reader, which just parrots what it was initially told, for unit testing.
     /// </summary>
-    class FauxReader : IFileReader
+    public class FauxReader : IFileReader
     {
         List<string> lines;
         
@@ -16,7 +16,7 @@ namespace Services
         /// Parrot back what we were told
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<string> readLines()
+        public IEnumerable<string> ReadLines()
         {
             return lines;
         }

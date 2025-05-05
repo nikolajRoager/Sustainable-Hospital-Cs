@@ -5,7 +5,7 @@ namespace Services
     /// </summary>
     public interface IFileReader
     {
-        public IEnumerable<string> readLines();
+        public IEnumerable<string> ReadLines();
     }
 
 }

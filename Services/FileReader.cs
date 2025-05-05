@@ -3,7 +3,7 @@ namespace Services
     /// <summary>
     /// File reader, which can reads data from the computers filesystem
     /// </summary>
-    class FileReader : IFileReader
+    public class FileReader : IFileReader
     {
         string path;
         
@@ -22,7 +22,7 @@ namespace Services
         /// Might Throws IOException, but only if the file has been changed/deleted between the initial check and the call of this function
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<string> readLines()
+        public IEnumerable<string> ReadLines()
         {
             return File.ReadLines(path);
         }

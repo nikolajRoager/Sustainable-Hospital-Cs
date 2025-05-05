@@ -1,7 +1,7 @@
 ﻿using System.Data;
 using OfficeOpenXml;
 using CommandLine;
-
+using Services;
 static class Program
 {
     public class Options
@@ -31,6 +31,7 @@ static class Program
             SynonymDictionary synonyms;
             RegexProductFinder.RegexProductLibrary regexProductLibrary;
             RegexExcelAnalyzer analyzer;
+
 
             if (o.trainMode)
             {
