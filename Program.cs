@@ -2,6 +2,7 @@
 using OfficeOpenXml;
 using CommandLine;
 using Services;
+using UserInterface;
 static class Program
 {
     public class Options
@@ -29,20 +30,51 @@ static class Program
             ExcelPackage.License.SetNonCommercialPersonal("Nikolaj R Christensen"); 
             
             SynonymDictionary synonyms;
-            RegexProductFinder.RegexProductLibrary regexProductLibrary;
-            RegexExcelAnalyzer analyzer;
+            RegexAnalyzer.RegexAnalyzer analyzer;
+
+            ConsoleUI CUI = new ConsoleUI();
+
+
+            //Set up dictionary 
+            try
+            {
+                synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
+                analyzer = new (synonyms);
+            }
+            catch (Exception ex)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(ex.Message);
+                return;
+            }
+
+            //Set up a file writer which writes to a persistent file
+            string UserdataPath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SustainableHospital");
+            //Create the directory if it doesn't exist
+            Directory.CreateDirectory(UserdataPath);
+            string  SavedLibrary = Path.Combine(UserdataPath,"ProduktLibrary.json");
 
 
             if (o.trainMode)
             {
 
-                //Set up dictionary and library, maybe stop with errors
+                //Set up dictionary 
                 try
                 {
-                    synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
-                    regexProductLibrary = new (o.productLibrary,synonyms);
-                    //Just load the regex analyzer, this throws errors if it fails
-                    analyzer = new (o.regexHeaders,synonyms);
+
+                    FileWriter fileWriter = new(SavedLibrary);
+                    string ExcelfilePath = "VareTypeBibliotek.xlsx";
+
+                    if (!File.Exists(ExcelfilePath))
+                    {
+                        throw new ArgumentException("Fil "+ExcelfilePath+" ikke fundet!");
+                    }
+                    else
+                        using (ExcelPackage package = new ExcelPackage(new FileInfo(ExcelfilePath)))
+                        {
+                            analyzer.train(fileWriter,package,CUI);
+                            fileWriter.save();
+                        }
                 }
                 catch (Exception ex)
                 {
@@ -56,13 +88,8 @@ static class Program
                 //Set up dictionary and library, maybe stop with errors
                 try
                 {
-                    synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
-                    regexProductLibrary = new (synonyms);
-                    var result = regexProductLibrary.GetMatch("Peberfrugt Gul Strimler");
-                    Console.WriteLine(result.category+";"+result.ingredient+";"+result.keyword);
-
-                    analyzer = new (o.regexHeaders,synonyms);
-
+                    FileReader reader = new(SavedLibrary);
+                    analyzer.load(reader);
                 }
                 catch (Exception ex)
                 {
@@ -70,7 +97,6 @@ static class Program
                     Console.WriteLine(ex.Message);
                     return;
                 }
-
             }
         });
         return;

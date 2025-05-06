@@ -2,7 +2,7 @@ using Services;
 
 public class TestIOFunctiosn
 {
-    //Test that the faux writer works as expected, otherwise we can't trust any other tests
+    //Test that the genuine file reader and writer works
     [Fact]
     public void TestIO()
     {
