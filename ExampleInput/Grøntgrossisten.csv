@@ -1,0 +1,36 @@
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+3586;Rigshospitalet Glostrup;79;Hvidløg Pillede, a 1kg, bakke;PS;KINA;10;779,1;1000;10000;0;77,91 kr.
+3586;Rigshospitalet Glostrup;80073;Skrællede store kartofler a 3 kg, pose;PS;DANMARK;3;230,92;3000;9000;0;76,97 kr.
+3586;Rigshospitalet Glostrup;Ø251H;Kogte jævne kartofler a 1 kg, øko, ps;PS;DANMARK;7842;196050;1000;7842000;1;25,00 kr.
+3586;Rigshospitalet Glostrup;Ø26,1H;Kogte kartofler i tern a 3 kg, ØKO, ps;PS;DANMARK;308;23154,19;3000;924000;1;75,18 kr.
+3586;Rigshospitalet Glostrup;Ø26H;Kogte kartofler i skiver a 3 kg, ØKO, ps;PS;DANMARK;562;42150;3000;1686000;1;75,00 kr.
+3586;Rigshospitalet Glostrup;Ø80073H;Kartofler store skrællede a 3 kg, ØKO, ps;PS;DANMARK;114;16416;3000;342000;1;144,00 kr.
+3586;Rigshospitalet Glostrup;Ø85313H;Kartoffeltern12x12 mm a 3 kg, ØKO, ps;PS;DANMARK;11;1122;3000;33000;1;102,00 kr.
+3586;Rigshospitalet Glostrup;Ø85323H;Kartoffeltern 20x20mm a 3 kg, ØKO, ps;PS;DANMARK;4;312;3000;12000;1;78,00 kr.
+;;;;;;;;;;;
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+3592;Rigshospitalet Centralkøkken;25;Kogte jævne kartofler a 3 kg, ps (Danica);PS;DANMARK;1;91,43;3000;3000;0;91,43 kr.
+3592;Rigshospitalet Centralkøkken;80053H;Skræl små kartofler a 3 kg,ps;STK;DANMARK;699;54522;3000;2097000;0;78,00 kr.
+3592;Rigshospitalet Centralkøkken;80073H;Skrællede store kartofler a 3 kg, ps;STK;DANMARK;2;156;3000;6000;0;78,00 kr.
+3592;Rigshospitalet Centralkøkken;85313;Kartofler i tern 12x12mm a 3 kg, pose;PS;DANMARK;3;230,92;3000;9000;0;76,97 kr.
+3592;Rigshospitalet Centralkøkken;85313H;Kartofler i tern12x12 mm a 3 kg, ps;STK;DANMARK;254;19812;3000;762000;0;78,00 kr.
+3592;Rigshospitalet Centralkøkken;85323H;Kartoffeltern 20x20mm a 3 kg,ps;STK;DANMARK;32;2496;3000;96000;0;78,00 kr.
+3592;Rigshospitalet Centralkøkken;85413H;Kartoffelskiver 4mm a 3 kg, ps;STK;DANMARK;6;468;3000;18000;0;78,00 kr.
+3592;Rigshospitalet Centralkøkken;Ø24;Forkogte små kartofler ØKO, ps a 3kg;PS;DANMARK;1;134,75;3000;3000;1;134,75 kr.
+3592;Rigshospitalet Centralkøkken;Ø251H;Kogte jævne kartofler a 1 kg, øko, ps;PS;DANMARK;11;275;1000;11000;1;25,00 kr.
+3592;Rigshospitalet Centralkøkken;Ø25H;Kogte jævne kartofler a 3 kg, øko, ps;PS;DANMARK;1;75;3000;3000;1;75,00 kr.
+3592;Rigshospitalet Centralkøkken;Ø26,1H;Kogte kartofler i tern a 3 kg, ØKO, ps;PS;DANMARK;8;600;3000;24000;1;75,00 kr.
+3592;Rigshospitalet Centralkøkken;Ø80033H;Raspede små kartofler a 3 kg, ØKO, ps;PS;DANMARK;137;10686;3000;411000;1;78,00 kr.
+3592;Rigshospitalet Centralkøkken;Ø80053H;Kartofler små Skrællede a 3 kg, ØKO, ps;PS;DANMARK;261;21615,01;3000;783000;1;82,82 kr.
+3592;Rigshospitalet Centralkøkken;Ø85313H;Kartoffeltern12x12 mm a 3 kg, ØKO, ps;PS;DANMARK;86;6774;3000;258000;1;78,77 kr.
+3592;Rigshospitalet Centralkøkken;Ø85323H;Kartoffeltern 20x20mm a 3 kg, ØKO, ps;PS;DANMARK;55;4290;3000;165000;1;78,00 kr.
+3592;Rigshospitalet Centralkøkken;Ø85413H;Kartoffelskiver 4mm a 3 kg, ØKO, ps;PS;DANMARK;3;234;3000;9000;1;78,00 kr.
+;;;;;;;;;;;
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+3605;Bornholms Hospital;Ø24H;Forkogte små kartofler a 3 kg, ØKO, ps;PS;DANMARK;216;16200;3000;648000;1;75,00 kr.
+3605;Bornholms Hospital;Ø24MH;Forkogte kartofler til mos a 3 kg, ØKO, ps;PS;DANMARK;72;5400;3000;216000;1;75,00 kr.
+3605;Bornholms Hospital;Ø26H;Kogte kartofler i skiver a 3 kg, ØKO, ps;PS;DANMARK;37;2775;3000;111000;1;75,00 kr.
+;;;;;;;;;;;
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+4301;Rigshospitalet Glostrup Kantinen;Ø26H;Kogte kartofler i skiver a 3 kg, ØKO, ps;PS;DANMARK;26;1950;3000;78000;1;75,00 kr.
+4301;Rigshospitalet Glostrup Kantinen;Ø80073H;Kartofler store skrællede a 3 kg, ØKO, ps;PS;DANMARK;40;3912;3000;120000;1;97,80 kr.

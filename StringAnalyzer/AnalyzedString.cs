@@ -30,6 +30,13 @@ namespace StringAnalyzer
         /// chance this is unimportant, mutually exclusive with everything else
         /// </summary>
         public int filler  {get;set;}= 1;
+
+        /// <summary>
+        /// The entire string, kept for reference
+        /// </summary>
+        public string content {get;set;}
+        
+
         /// <summary>
         /// Chance this contains the total mass 
         /// </summary>
@@ -84,14 +91,24 @@ namespace StringAnalyzer
         /// </summary>
         public IProduct? Product {get;set;}= null;
 
+        /// <summary>
+        /// If a generic integer has been found, what is it
+        /// </summary>
         public int intValue {get;set;}= 0;
+        /// <summary>
+        /// If a generic double has been found, what is it
+        /// </summary>
         public double doubleValue {get;set;}= 0;
+        /// <summary>
+        /// If product number has been found, what is it
+        /// </summary>
+        public string ProductNr {get;set;}
 
         /// <summary>
         /// Create with 100% chance of being filler
         /// Normally I recommend using custom constructors with the new keyword, but there are predefined constructors for the most common things
         /// </summary>
-        public AnalyzedString()
+        public AnalyzedString(string c="")
         {
             filler=100;//Filler is always an option
             containsProductNr =0;
@@ -109,6 +126,8 @@ namespace StringAnalyzer
             Product = null;
             intValue =0;    
             doubleValue=0;
+            content=c;
+            ProductNr="null";
         }
 
 
@@ -116,7 +135,7 @@ namespace StringAnalyzer
         /// Create with 100% chance of being a product
         /// Normally I recommend using custom constructors with the new keyword, but there are predefined constructors for the most common things
         /// </summary>
-        public AnalyzedString(IProduct P)
+        public AnalyzedString(IProduct P,string c)
         {
             filler=1;//Filler is always an option
             containsTotalMass=0;
@@ -134,6 +153,8 @@ namespace StringAnalyzer
             Product = P;
             containsProductNr =0;
             containsProduct= 10;
+            content = c;
+            ProductNr="null";
         }
 
 
@@ -141,14 +162,14 @@ namespace StringAnalyzer
         /// Create from an generic integer value
         /// Normally I recommend using custom constructors with the new keyword, but there are predefined constructors for the most common things
         /// </summary>
-        public AnalyzedString(int intValue)
+        public AnalyzedString(int intValue, string c)
         {
             filler=1;//Filler is always an option
             //Maybe one of these, idk.
             containsTotalMass=2;
             containsSingleMass=2;
             containsAmount=2;
-            containsProductNr =1;
+            containsProductNr =2;
             isInteger =10;
             isDecimal= 0;
             this.intValue =intValue;    
@@ -160,13 +181,15 @@ namespace StringAnalyzer
             QuantityHeader=0;    
             Product = null;
             containsProduct= 0;
+            content = c;
+            ProductNr=$"{intValue}";
         }
 
         /// <summary>
         /// Create from an generic double value
         /// Normally I recommend using custom constructors with the new keyword, but there are predefined constructors for the most common things
         /// </summary>
-        public AnalyzedString(double doubleValue)
+        public AnalyzedString(double doubleValue, string c)
         {
             filler=1;//Filler is always an option
             //Maybe... mass, certainly not amount, unless it is actually an int
@@ -185,6 +208,8 @@ namespace StringAnalyzer
             QuantityHeader=0;
             Product = null;
             containsProduct= 0;
+            content = c;
+            ProductNr=$"{intValue}";
         }
 
         /// <summary>
@@ -209,7 +234,9 @@ namespace StringAnalyzer
                 TotalMassHeader=this.TotalMassHeader,
                 QuantityHeader=this.QuantityHeader,
                 Product=null,
-                containsProduct=this.containsProduct
+                containsProduct=this.containsProduct,
+                content="",
+                ProductNr="null"
             };
         }
     }

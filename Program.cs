@@ -4,6 +4,7 @@ using CommandLine;
 using Services;
 using UserInterface;
 using DocumentAnalysis;
+using System.Drawing;
 static class Program
 {
     public class Options
@@ -20,8 +21,9 @@ static class Program
         
         [Option('t',"train", HelpText = "Run in training mode; will be overwritten and forced to true if an input tabel is included")]
         public bool trainMode{get; set;} =false;
-        [Option('v',"visual-example", HelpText = "excel file we will create a visual analyzed example of",Default =null)]
+        [Option('e',"visual-example", HelpText = "create a visual analyzed example of an excel file, or all files within a directory",Default =null)]
         public string? visualExample{get; set;} = null;
+        
     }
     static void Main(string[] args)
     {
@@ -31,7 +33,7 @@ static class Program
             ExcelPackage.License.SetNonCommercialPersonal("Nikolaj R Christensen"); 
             
             SynonymDictionary synonyms;
-            RegexAnalyzer.RegexAnalyzer analyzer;
+            RegexAnalyzer.RegexAnalyzer stringAnalyzer;
 
             ConsoleUI CUI = new ConsoleUI();
 
@@ -40,7 +42,7 @@ static class Program
             try
             {
                 synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
-                analyzer = new (synonyms);
+                stringAnalyzer = new (synonyms);
             }
             catch (Exception ex)
             {
@@ -73,7 +75,7 @@ static class Program
                     else
                         using (ExcelPackage package = new ExcelPackage(new FileInfo(ExcelfilePath)))
                         {
-                            analyzer.train(fileWriter,package,CUI);
+                            stringAnalyzer.train(fileWriter,package,CUI);
                             fileWriter.save();
                         }
                 }
@@ -90,7 +92,7 @@ static class Program
                 try
                 {
                     FileReader reader = new(SavedLibrary);
-                    analyzer.load(reader);
+                    stringAnalyzer.load(reader);
 
                 }
                 catch (Exception ex)
@@ -102,26 +104,65 @@ static class Program
             }
             if (o.visualExample!=null)
             {
+                //Clean up input
+                o.visualExample=o.visualExample.TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+                //Check how many files we are going to loop over
+                Dictionary<string, string> FromTo=new();
                 try
                 {
-                    if (!File.Exists(o.visualExample))
+                    FileAttributes attributes = File.GetAttributes(o.visualExample);
+                    //If it is a directory, we want to copy the entire structure to output/
+                    if ((attributes & FileAttributes.Directory)==FileAttributes.Directory)
                     {
-                        throw new ArgumentException("Fil "+o.visualExample+" ikke fundet!");
+                        string[] inputFiles = Directory.GetFiles(o.visualExample,"*.xlsx",SearchOption.AllDirectories);
+                        foreach (string file in inputFiles )
+                        {
+                            FromTo[file]=Path.Combine("out",file.Replace(o.visualExample+Path.DirectorySeparatorChar,""));
+                        }
                     }
-
-                    //TEMPORARY, load an excel document and perform analysis
-                    using (ExcelPackage package = new ExcelPackage(new FileInfo(o.visualExample)))
+                    else
                     {
-                        VisualAnalyzer.vizualizeCellAnalysis(package,analyzer);
-                        Console.WriteLine("Saving");
-                        package.SaveAs("visualExample.xlsx");
+                        if (!File.Exists(o.visualExample))
+                        {
+                            throw new ArgumentException("Fil "+o.visualExample+" ikke fundet!");
+                        }
+                        FromTo[o.visualExample]=Path.Combine("out",Path.GetFileName(o.visualExample));
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Kunne ikke finde filer i "+o.visualExample+", da der var et problem : "+ex.Message);
                     return;
+                }
+
+                DocumentAnalyzer documentAnalyzer = new(stringAnalyzer);
+
+                //Ok, now start looping through the files
+                Console.WriteLine("Analyzing files:");
+                foreach (var pair in FromTo)
+                {
+                    Console.WriteLine(pair.Key+" : "+pair.Value);
+                    try
+                    {
+                        //TEMPORARY, load an excel document and perform analysis
+                        using (ExcelPackage package = new ExcelPackage(new FileInfo(pair.Key)))
+                        {
+                            documentAnalyzer.firstPass(package,true);
+                            //VisualAnalyzer.vizualizeCellAnalysis(package,stringAnalyzer);
+                            Console.WriteLine("Saving");
+                            if (Path.GetDirectoryName(pair.Value)!=null)//I don't think the compiler warning here can be fixed, I think you can safely ignore it
+                                Directory.CreateDirectory(Path.GetDirectoryName(pair.Value));
+                            package.SaveAs(pair.Value);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        ConsoleColor original = Console.ForegroundColor;
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Springer over analysen af "+pair.Key+", da der var et problem : "+ex.Message);
+                        Console.ForegroundColor = original;
+                    }
                 }
             }
         });

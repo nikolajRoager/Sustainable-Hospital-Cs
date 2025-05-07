@@ -23,7 +23,7 @@ namespace RegexAnalyzer
     //Decimal marker .;  , may be used to divide thousands (optional)
         static Regex findDecimal =new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:,\d{3})+|\d+).?\d+(?!\d)",RegexOptions.IgnoreCase);
 
-
+        //Product numbers occationally include a - in the middle
         static Regex findProductNr = new Regex(@"\d+\-\d+",RegexOptions.IgnoreCase);
         /*Try it out on this example:
             23020-23423 454 first is a product number
@@ -98,11 +98,11 @@ namespace RegexAnalyzer
             var culture = CultureInfo.InvariantCulture;
             if (int.TryParse(cell_input, style, culture, out int myIntValue))
             {
-                return new AnalyzedString(myIntValue);
+                return new AnalyzedString(myIntValue,cell_input);
             }
             else if (double.TryParse(cell_input, style, culture, out double myDoubleValue))
             {
-                return new AnalyzedString(myDoubleValue);
+                return new AnalyzedString(myDoubleValue,cell_input);
             }
             //Ok, now check against all known headers, one at the time
             //I could have made the code shorter by using a dictionary<string,set<regex>> where the string is the header type
@@ -151,8 +151,13 @@ namespace RegexAnalyzer
             
             //It could also contain a product number
             bool ProductNrMatch_found = false;
-            if (findProductNr.IsMatch(cell_input))
+            var pmatch = findProductNr.Match(cell_input);
+            string productNrMatch="";            
+            if (pmatch.Success)
+            {
                 ProductNrMatch_found = true;
+                productNrMatch=pmatch.Value;
+            }
 
             //Oh, and check if there is an amount somewhere
         
@@ -211,10 +216,11 @@ namespace RegexAnalyzer
 
             //Ok, now combine everything, if nothing was found, it is just filler
             if (!mass_found && !AmountMatch_found && ! productHeader_found && !NrHeader_found && !MassHeader_found &&  !ProductMatch_found && !ProductNrMatch_found && !QuantityHeader_found)
-                return new AnalyzedString();
+                return new AnalyzedString(cell_input);
             
             //Otherwise, let us create an analyzed string with our best estimates
             return new AnalyzedString{
+                content=cell_input,
                 filler=1,//Filler is always an option
                 //Give both the same weight
                 //If singlefound == totalfound, the mass can be either or,
@@ -231,7 +237,8 @@ namespace RegexAnalyzer
                 QuantityHeader=QuantityHeader_found ?10:0,    
                 containsAmount=AmountMatch_found ?10:0,
                 containsProduct=ProductMatch_found?10:0,
-                containsProductNr=ProductNrMatch_found?10:0,
+                containsProductNr=ProductNrMatch_found?10:AmountMatch_found?5:0,//Something which looks like amount can also be product number
+                ProductNr= ProductNrMatch_found?productNrMatch:AmountMatch_found?$"{amount}":"null"//The "amount" might be a product number
             };
         }
 

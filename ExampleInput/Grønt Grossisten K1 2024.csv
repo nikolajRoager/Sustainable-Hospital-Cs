@@ -1,0 +1,32 @@
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+3586;Rigshospitalet Glostrup;Ø251H;Kogte jævne kartofler a 1 kg, øko, ps;PS;Danmark;9794;244850;1000;9794000;1; 25,00 kr. 
+3586;Rigshospitalet Glostrup;Ø26,1H;Kogte kartofler i tern a 3 kg, ØKO, ps;PS;Danmark;283;21225;3000;849000;1; 75,00 kr. 
+3586;Rigshospitalet Glostrup;Ø26H;Kogte kartofler i skiver a 3 kg, ØKO, ps;PS;Danmark;251;18825;3000;753000;1; 75,00 kr. 
+3586;Rigshospitalet Glostrup;Ø80073H;Kartofler store skrællede a 3 kg, ØKO, ps;PS;Danmark;730;54750;3000;2190000;1; 75,00 kr. 
+3586;Rigshospitalet Glostrup;Ø85313H;Kartoffeltern12x12 mm a 3 kg, ØKO, ps;PS;Danmark;8;600;3000;24000;1; 75,00 kr. 
+3586;Rigshospitalet Glostrup;Ø85513H;Kartoffelbåde m/skræl a 3 kg, øko, ps;PS;Danmark;211;15825;3000;633000;1; 75,00 kr. 
+;;;;;;;;;;;
+;;;;;;;;;;;
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+3592;Rigshospitalet Centralkøkken;Ø251H;Kogte jævne kartofler a 1 kg, øko, ps;PS;Danmark;21;525;1000;21000;1; 25,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø26,1H;Kogte kartofler i tern a 3 kg, ØKO, ps;PS;Danmark;16;1200;3000;48000;1; 75,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø80053;Kartofler små Skrællede a 3 kg,ØKO,ps;PS;Danmark;46;3450;3000;138000;1; 75,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø80053H;Kartofler små Skrællede a 3 kg, ØKO, ps;PS;Danmark;1066;79950;3000;3198000;1; 75,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø80073H;Kartofler store skrællede a 3 kg, ØKO, ps;PS;Danmark;53;3975;3000;159000;1; 75,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø85313;Kartofler i tern 12x12mm a 3 kg, ØKO,ps;PS;Danmark;2;150;3000;6000;1; 75,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø85313H;Kartoffeltern12x12 mm a 3 kg, ØKO, ps;PS;Danmark;350;26250;3000;1050000;1; 75,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø85323H;Kartoffeltern 20x20mm a 3 kg, ØKO, ps;PS;Danmark;115;8625;3000;345000;1; 75,00 kr. 
+3592;Rigshospitalet Centralkøkken;Ø85413H;Kartoffelskiver 4mm a 3 kg, ØKO, ps;PS;Danmark;9;675;3000;27000;1; 75,00 kr. 
+;;;;;;;;;;;
+;;;;;;;;;;;
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+3605;Bornholms Hospital;Ø24H;Forkogte små kartofler a 3 kg, ØKO, ps;PS;Danmark;164;12300;3000;492000;1; 75,00 kr. 
+3605;Bornholms Hospital;Ø24MH;Forkogte kartofler til mos a 3 kg, ØKO, ps;PS;Danmark;108;8100;3000;324000;1; 75,00 kr. 
+3605;Bornholms Hospital;Ø26,1H;Kogte kartofler i tern a 3 kg, ØKO, ps;PS;Danmark;10;750;3000;30000;1; 75,00 kr. 
+3605;Bornholms Hospital;Ø26H;Kogte kartofler i skiver a 3 kg, ØKO, ps;PS;Danmark;36;2700;3000;108000;1; 75,00 kr. 
+;;;;;;;;;;;
+;;;;;;;;;;;
+Source No_;CustomerName;Item No_;ItemDescription;UnitOfMeasure;Oprindelse;Quantity;Amount;NettoWeight;TotalWeight;Ecology; Price pr unit 
+4301;Rigshospitalet Glostrup Kantinen;Ø26H;Kogte kartofler i skiver a 3 kg, ØKO, ps;PS;Danmark;8;600;3000;24000;1; 75,00 kr. 
+4301;Rigshospitalet Glostrup Kantinen;Ø80073H;Kartofler store skrællede a 3 kg, ØKO, ps;PS;Danmark;20;1500;3000;60000;1; 75,00 kr. 
+4301;Rigshospitalet Glostrup Kantinen;Ø85413H;Kartoffelskiver 4mm a 3 kg, ØKO, ps;PS;Danmark;42;3150;3000;126000;1; 75,00 kr. 
