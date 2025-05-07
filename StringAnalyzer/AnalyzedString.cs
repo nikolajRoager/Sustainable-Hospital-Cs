@@ -9,6 +9,21 @@ namespace StringAnalyzer
     /// </summary>
     public class AnalyzedString
     {
+        public int total {get {return
+         filler+  
+         containsTotalMass+ 
+         containsSingleMass+
+         isInteger+ 
+         isDecimal+ 
+         containsProduct+ 
+         containsProductNr+ 
+         containsAmount+ 
+         productNameHeader+  
+         NrHeader+ 
+         SingleMassHeader+ 
+         TotalMassHeader+ 
+         QuantityHeader;
+        }}
         //The estimated likelyhood that the string is the following (do note that headers are mutually exclusive with each other and any other content, but product name, and mass can co-exist):
         //The chances go from 0 and up, with higher being more likely
         /// <summary>
@@ -34,7 +49,7 @@ namespace StringAnalyzer
         /// <summary>
         /// Chance this is a product name, can coexist with some numbers like mass or amount
         /// </summary>
-        public int isProduct {get;set;}= 0;
+        public int containsProduct {get;set;}= 0;
         /// <summary>
         /// Chance this contains the product number, can coexist with name
         /// </summary>
@@ -43,10 +58,6 @@ namespace StringAnalyzer
         /// Chance this contains the number of instances of this product, can coexist with name
         /// </summary>
         public int containsAmount {get;set;}= 0;
-        /// <summary>
-        /// Chance this is the name of a product, can coexist with mass
-        /// </summary>
-        public int ProductName  {get;set;}= 0;
         /// <summary>
         /// Chance this is the header for the product name
         /// </summary>
@@ -73,6 +84,9 @@ namespace StringAnalyzer
         /// </summary>
         public IProduct? Product {get;set;}= null;
 
+        public int intValue {get;set;}= 0;
+        public double doubleValue {get;set;}= 0;
+
         /// <summary>
         /// Create with 100% chance of being filler
         /// Normally I recommend using custom constructors with the new keyword, but there are predefined constructors for the most common things
@@ -85,21 +99,17 @@ namespace StringAnalyzer
             containsSingleMass=0;
             isInteger =0;
             isDecimal= 0;
-            intValue =0;    
-            doubleValue=0;
-            ProductName=0;
             containsAmount=0;
             productNameHeader=0;
             NrHeader=0;
             SingleMassHeader=0;
             TotalMassHeader=0;
             QuantityHeader=0;    
+            containsProduct= 0;
             Product = null;
-            isProduct= 0;
+            intValue =0;    
+            doubleValue=0;
         }
-
-        public int intValue {get;set;}= 0;
-        public double doubleValue {get;set;}= 0;
 
 
         /// <summary>
@@ -115,7 +125,6 @@ namespace StringAnalyzer
             isDecimal= 0;
             intValue =0;    
             doubleValue=0;
-            ProductName=0;
             containsAmount=0;
             productNameHeader=0;
             NrHeader=0;
@@ -124,7 +133,7 @@ namespace StringAnalyzer
             QuantityHeader=0;    
             Product = P;
             containsProductNr =0;
-            isProduct= 10;
+            containsProduct= 10;
         }
 
 
@@ -144,14 +153,13 @@ namespace StringAnalyzer
             isDecimal= 0;
             this.intValue =intValue;    
             this.doubleValue=intValue;
-            ProductName=0;
             productNameHeader=0;
             NrHeader=0;
             SingleMassHeader=0;
             TotalMassHeader=0;
             QuantityHeader=0;    
             Product = null;
-            isProduct= 0;
+            containsProduct= 0;
         }
 
         /// <summary>
@@ -170,14 +178,39 @@ namespace StringAnalyzer
             containsProductNr =(doubleValue==(int)(doubleValue) ? 1 :0);//I highly doubt this is product nr BUT IT COULD BE
             this.intValue =(int)doubleValue;    
             this.doubleValue=doubleValue;
-            ProductName=0;
             productNameHeader=0;
             NrHeader=0;
             SingleMassHeader=0;
             TotalMassHeader=0;
             QuantityHeader=0;
             Product = null;
-            isProduct= 0;
+            containsProduct= 0;
+        }
+
+        /// <summary>
+        /// Create a clone without the estimated value of the int, product number, double, or product in this string
+        /// Useful if we want to group up similar cells, regardless of content
+        /// </summary>
+        /// <returns></returns>
+        public AnalyzedString cloneChances()
+        {
+            return new AnalyzedString{
+                filler=this.filler,
+                containsTotalMass=this.containsTotalMass,
+                containsSingleMass=this.containsSingleMass,
+                containsAmount=this.containsAmount,
+                isInteger=this.isInteger,
+                isDecimal=this.isDecimal,
+                containsProductNr=this.containsProductNr,
+                intValue=0,
+                doubleValue=0,
+                NrHeader=this.NrHeader,
+                SingleMassHeader=this.SingleMassHeader,
+                TotalMassHeader=this.TotalMassHeader,
+                QuantityHeader=this.QuantityHeader,
+                Product=null,
+                containsProduct=this.containsProduct
+            };
         }
     }
 }

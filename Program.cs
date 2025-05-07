@@ -3,6 +3,7 @@ using OfficeOpenXml;
 using CommandLine;
 using Services;
 using UserInterface;
+using DocumentAnalysis;
 static class Program
 {
     public class Options
@@ -19,8 +20,8 @@ static class Program
         
         [Option('t',"train", HelpText = "Run in training mode; will be overwritten and forced to true if an input tabel is included")]
         public bool trainMode{get; set;} =false;
-        [Option('r',"regexHeaders", HelpText = "excel file with regices to find headers",Default ="RegexHeaders.xlsx")]
-        public string regexHeaders{get; set;} = "RegexHeaders.xlsx";
+        [Option('v',"visual-example", HelpText = "excel file we will create a visual analyzed example of",Default =null)]
+        public string? visualExample{get; set;} = null;
     }
     static void Main(string[] args)
     {
@@ -90,6 +91,31 @@ static class Program
                 {
                     FileReader reader = new(SavedLibrary);
                     analyzer.load(reader);
+
+                }
+                catch (Exception ex)
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(ex.Message);
+                    return;
+                }
+            }
+            if (o.visualExample!=null)
+            {
+                try
+                {
+                    if (!File.Exists(o.visualExample))
+                    {
+                        throw new ArgumentException("Fil "+o.visualExample+" ikke fundet!");
+                    }
+
+                    //TEMPORARY, load an excel document and perform analysis
+                    using (ExcelPackage package = new ExcelPackage(new FileInfo(o.visualExample)))
+                    {
+                        VisualAnalyzer.vizualizeCellAnalysis(package,analyzer);
+                        Console.WriteLine("Saving");
+                        package.SaveAs("visualExample.xlsx");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -99,6 +125,8 @@ static class Program
                 }
             }
         });
+
+
         return;
     }
 }

@@ -19,19 +19,19 @@ namespace RegexAnalyzer
     {
 
     //Integer, not part of decimal using negative lookbehind
-        static Regex findInteger = new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?!.\d)");
+        static Regex findInteger = new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?!.\d)",RegexOptions.IgnoreCase);
     //Decimal marker .;  , may be used to divide thousands (optional)
-        static Regex findDecimal =new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:,\d{3})+|\d+).?\d+(?!\d)");
+        static Regex findDecimal =new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:,\d{3})+|\d+).?\d+(?!\d)",RegexOptions.IgnoreCase);
 
 
-        static Regex findProductNr = new Regex(@"\d+\-\d+");
+        static Regex findProductNr = new Regex(@"\d+\-\d+",RegexOptions.IgnoreCase);
         /*Try it out on this example:
             23020-23423 454 first is a product number
             -324324 not a product number
             23453 not a product number
         */
         
-        static Regex findAmount = new Regex(@"(?<![\d:-])\d+");
+        static Regex findAmount = new Regex(@"(?<![\d:-])\d+",RegexOptions.IgnoreCase);
         /*Try it out on this example:
             23020-23423 454 first is a product number
             -324324 not a product number
@@ -80,7 +80,7 @@ namespace RegexAnalyzer
         HashSet<string> Materials=new();
 
         
-        public AnalyzedString Analyze(string cell_input)
+        public AnalyzedString Analyze(string? cell_input)
         {
             //The steps to analyzing a string is the following: 
             //Check if it is empty (break early),
@@ -139,7 +139,6 @@ namespace RegexAnalyzer
                     QuantityHeader_found= true;
                     break;
                 }
-
 
             //Now, even if this can be a header, check if it could also be a product           
             bool ProductMatch_found = false;
@@ -223,15 +222,16 @@ namespace RegexAnalyzer
                 containsSingleMass=(mass_found ) ? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) :0,
                 isInteger =0,
                 isDecimal= 0,
-                intValue =0,
+                intValue =amount,
                 doubleValue=mass,
-                ProductName=amount,
                 productNameHeader=productHeader_found?10:0,//Give any headers found same weight
                 NrHeader=NrHeader_found?10:0,
                 SingleMassHeader=MassHeader_found? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
                 TotalMassHeader=MassHeader_found ? ((singleFound ==totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
                 QuantityHeader=QuantityHeader_found ?10:0,    
                 containsAmount=AmountMatch_found ?10:0,
+                containsProduct=ProductMatch_found?10:0,
+                containsProductNr=ProductNrMatch_found?10:0,
             };
         }
 
@@ -295,7 +295,7 @@ namespace RegexAnalyzer
                 var CellString = Cell?.ToString();
                 if (CellString==null ||CellString.Length==0)
                     break;
-                ProductHeaders.Add(new Regex(CellString));
+                ProductHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
             for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
@@ -304,7 +304,7 @@ namespace RegexAnalyzer
                 var CellString = Cell?.ToString();
                 if (CellString==null ||CellString.Length==0)
                     break;
-                NrHeaders.Add(new Regex(CellString));
+                NrHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
             for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
@@ -313,7 +313,7 @@ namespace RegexAnalyzer
                 var CellString = Cell?.ToString();
                 if (CellString==null ||CellString.Length==0)
                     break;
-                MassHeaders.Add(new Regex(CellString));
+                MassHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
             for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
@@ -322,7 +322,7 @@ namespace RegexAnalyzer
                 var CellString = Cell?.ToString();
                 if (CellString==null ||CellString.Length==0)
                     break;
-                QuantityHeaders.Add(new Regex(CellString));
+                QuantityHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
             for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
@@ -331,7 +331,7 @@ namespace RegexAnalyzer
                 var CellString = Cell?.ToString();
                 if (CellString==null ||CellString.Length==0)
                     break;
-                TotalRegices.Add(new Regex(CellString));
+                TotalRegices.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
             for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
@@ -340,7 +340,7 @@ namespace RegexAnalyzer
                 var CellString = Cell?.ToString();
                 if (CellString==null ||CellString.Length==0)
                     break;
-                SingleRegices.Add(new Regex(CellString));
+                SingleRegices.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
             for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
@@ -358,7 +358,7 @@ namespace RegexAnalyzer
                     90.0kg
                     6 90.0 kg 5-343
                 */   
-                MassUnitNames[new Regex(@"\b\d+(?:\.\d+?)?(?=\s?"+UnitCellString+@"\b)")] = double.Parse(KgCellString);
+                MassUnitNames[new Regex(@"\b\d+(?:\.\d+?)?(?=\s?"+UnitCellString+@"\b)",RegexOptions.IgnoreCase)] = double.Parse(KgCellString);
             }
 
             /*
@@ -572,15 +572,15 @@ namespace RegexAnalyzer
             foreach (var p in variables.Products)
                 Products.Add(p);
 
-            ProductHeaders=variables.ProductHeaders.Select(regex => new Regex(regex)).ToList();
-            NrHeaders =variables.ProductNumberHeaders.Select(regex => new Regex(regex)).ToList();
-            MassHeaders =variables.MassKgNames .Select(regex => new Regex(regex)).ToList();
-            QuantityHeaders =variables.QuantityHeaders.Select(regex => new Regex(regex)).ToList();
-            TotalRegices =variables.TotalRegices.Select(regex => new Regex(regex)).ToList();
-            SingleRegices =variables.SingleRegices.Select(regex => new Regex(regex)).ToList();
+            ProductHeaders=variables.ProductHeaders.Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
+            NrHeaders =variables.ProductNumberHeaders.Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
+            MassHeaders =variables.MassKgNames .Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
+            QuantityHeaders =variables.QuantityHeaders.Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
+            TotalRegices =variables.TotalRegices.Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
+            SingleRegices =variables.SingleRegices.Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
             MassUnitNames=new();
             for (int i = 0; i < variables.MassUnits.Count; ++i)
-                MassUnitNames[new Regex(variables.MassNames[i])]=variables.MassUnits[i];
+                MassUnitNames[new Regex(variables.MassNames[i],RegexOptions.IgnoreCase)]=variables.MassUnits[i];
 
         }
     }

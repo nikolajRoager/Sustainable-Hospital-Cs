@@ -23,7 +23,7 @@ namespace StringAnalyzer
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
-        public AnalyzedString Analyze(string input);
+        public AnalyzedString Analyze(string? input);
 
     }
 }

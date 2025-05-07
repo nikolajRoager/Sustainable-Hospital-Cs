@@ -39,7 +39,7 @@ namespace RegexAnalyzer
         [OnDeserialized]
         internal void OnDeserializedMethod(StreamingContext context)
         {
-            KeyRegex = new Regex(Keyword);
+            KeyRegex = new Regex(Keyword,RegexOptions.IgnoreCase);
         }
         
 
