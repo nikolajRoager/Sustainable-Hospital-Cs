@@ -1,14 +1,16 @@
 using System.Drawing;
 using OfficeOpenXml;
 using StringAnalyzer;
+using UserInterface;
 
 namespace DocumentAnalysis
 {
     /// <summary>
     /// The glorious class which fully analyzes an Excel document ... by calling other classes, and passing their work of as our own (the other classes are defined by interfaces, thus making it highly flexible)
     /// </summary>
-    class DocumentAnalyzer(IStringAnalyzer _stringAnalyzer)
+    class DocumentAnalyzer(IStringAnalyzer _stringAnalyzer, IUI uI)
     {
+        private IUI UI = uI;
         private IStringAnalyzer stringAnalyzer = _stringAnalyzer;
 
         /// <summary>
@@ -24,21 +26,19 @@ namespace DocumentAnalysis
             List<FirstAnalysisDocument> Out = new();
             for (int sheetIndex = 0; sheetIndex < originalSheets; sheetIndex++)
             {
-                var newSheet = targetDocument.Workbook.Worksheets[sheetIndex];
+                
+                var newSheet = targetDocument.Workbook.Worksheets.Copy(targetDocument.Workbook.Worksheets[sheetIndex].Name,"FirstPass"+(originalSheets>1?$"{sheetIndex}":"")) ;
                 
                 if (newSheet.Dimension==null)//The user knows what file this is
                 {
-                    ConsoleColor original = Console.ForegroundColor;
-                    Console.ForegroundColor= ConsoleColor.Yellow;
-                    Console.WriteLine($"ADVARSEL; tomt ark: {sheetIndex}");
-                    Console.ForegroundColor= original;
+                    UI.WriteLine($"tomt ark: {sheetIndex}",true);
                     continue;
                 }
                 //Might be null if empty
                 int width = newSheet.Dimension.End.Column;
                 int height = newSheet.Dimension.End.Row;
 
-                FirstAnalysisDocument ThisOut = new FirstAnalysisDocument(height,width);
+                FirstAnalysisDocument ThisOut = new FirstAnalysisDocument(targetDocument.Workbook.Worksheets[sheetIndex].Name,height,width);
 
                 //We will gradually build out a legend with the different types of strings
                 Dictionary<string,Color> Legend=new();
@@ -136,6 +136,204 @@ namespace DocumentAnalysis
             }
             return Out;
         }
-    }
 
+        /// <summary>
+        /// Make both first and second pass, and optionally display what happened
+        /// </summary>
+        /// <param name="package"></param>
+        /// <param name="uI"></param>
+        /// <param name="visual"></param>
+        public void twoPass(ExcelPackage package, bool visual=false)
+        {
+            uI.WriteLine("Første analyse");
+            var documents = firstPass(package,visual);
+            uI.WriteLine("Anden analyse");
+            for (int i = 0; i < documents.Count; ++i)
+            {
+                uI.WriteLine($"{i+1}/{documents.Count}");
+                var tables = secondPass(documents[i]);
+
+                if (visual)
+                {
+                    //copy the original sheet
+                    var newSheet = package.Workbook.Worksheets.Copy(documents[i].Name,"SecondPass"+(documents.Count>1?$"{i}":"")) ;
+                    
+                    foreach (var table in tables)
+                    {
+                        for (int x = table.x0; x <=table.x1; ++x)
+                            newSheet.Cells[table.y0+1,x+1].Style.Fill.SetBackground(Color.Red,OfficeOpenXml.Style.ExcelFillStyle.Solid);
+                        foreach (var col in table.Columns)
+                        {
+                            newSheet.Cells[table.y0+1,col.column_x+1].Style.Fill.SetBackground(Color.DarkGreen,OfficeOpenXml.Style.ExcelFillStyle.Solid);
+
+                            //Update header to say what we think it is
+                            newSheet.Cells[table.y0+1,col.column_x+1].Value =
+                                $"{(col.couldBeProduct ? "PRODUKT, ":"" )}{(col.couldBeNumber? "VARENR, ":"" )}{(col.couldBeAmount? "ANTAL, ":"" )}{(col.couldBeSingleMass? "STK. MASSE, ":"" )}{(col.couldBeSingleMass? "TOTAL MASSE ":"" )}";
+
+                            for (int y = table.y0+1; y <table.y1; ++y)
+                            {
+                                newSheet.Cells[y+1,col.column_x+1].Style.Fill.SetBackground(col.column_x%2==0 ? Color.Green : Color.SeaGreen,OfficeOpenXml.Style.ExcelFillStyle.Solid);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        public IEnumerable<hypotheticalTable> secondPass(FirstAnalysisDocument Document)
+        {
+
+            HashSet<string> nonProducts=new();//Things we already warned the user is not a product, no need to warn them again
+            int hp=20;//We give the tables 2 hit-points, they can survive 1 unkknown product without quiting
+
+            //There may be several tables in the same document
+            Dictionary<(int,int),hypotheticalTable> tables = new ();
+            //First step, loop through all rows, and see if it contains headers
+            for (int y = 0; y < Document.Height; ++y)
+            {
+                hypotheticalTable thisTable = new(y);
+
+                for (int x = 0; x < Document.Width; ++x)
+                {
+                    //Skip things which could be a product
+                    if (Document.Cells[y,x].containsProduct==0)
+                        thisTable.Add(new HypotheticalColumn{
+                            couldBeNumber=Document.Cells[y,x].NrHeader>0 || Document.Cells[y,x].productNameHeader>0,
+                            couldBeAmount=Document.Cells[y,x].QuantityHeader>0 || Document.Cells[y,x].productNameHeader>0,
+                            couldBeTotalMass=Document.Cells[y,x].TotalMassHeader>0 || Document.Cells[y,x].productNameHeader>0,
+                            couldBeSingleMass=Document.Cells[y,x].SingleMassHeader>0 || Document.Cells[y,x].productNameHeader>0,
+                            couldBeProduct=Document.Cells[y,x].productNameHeader>0,
+                            column_x=x});
+                }
+
+                //Only add if we detected all headers
+                if (thisTable.headers==4)
+                   tables[(y,thisTable.x0)]=(thisTable);
+            }
+            if (tables.Count==0)
+            {
+                UI.WriteLine($"Ingen tabel fundet i dokument",true);
+                return new List<hypotheticalTable>();
+            }
+
+            //Ok, now step down through the table to see how deep it goes ... and fix any ambiguity
+            //Loop from below instead, that way already finished tables can block the ones we are working on
+            foreach (((int y0,int x0),hypotheticalTable table) in tables)
+            {
+                //Extend the size of the table as we go
+                for (table.y1 = y0+1; table.y1 < Document.Height; ++table.y1)
+                {
+                    //Check for overlap with other tables below this
+
+                    foreach (((int y02,int x02),hypotheticalTable other) in tables)
+                    if (table.y1>=other.y0 && table.y1<other.y1)
+                    {
+                      //These are all the ways there can be overlap, if there is break!!!
+                        if ( (table.x0<other.x0 && table.x1>other.x0) ||  (table.x0<other.x1 && table.x1>other.x1)  ||  (other.x0<table.x0 && other.x1>table.x0)   ||  (other.x0<table.x1 && other.x1>table.x1) )
+                           break;
+                    }
+
+                    //Check if ALL suddenly stopped at the same time, in that case we simply stop
+                    bool anyMatches=false;
+                    foreach (HypotheticalColumn col in table.Columns)
+                    {
+                        if (col.couldBeNumber && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProductNr>0)
+                        {
+                            anyMatches=true;
+                        }
+                        if (col.couldBeProduct && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProduct>0)
+                        {
+                            anyMatches=true;
+                        }
+                        if (col.couldBeAmount && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsAmount>0)
+                        {
+                            anyMatches=true;
+                        }
+                        if ((col.couldBeTotalMass || col.couldBeSingleMass) && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && (Document.Cells[table.y1,col.column_x].containsSingleMass>0 || Document.Cells[table.y1,col.column_x].containsTotalMass>0))
+                        {
+                            anyMatches=true;
+                        }
+                    }
+                    //If this is a non-matching but not blank line, end the table
+                    //Tables can continue after blank lines
+                    if (!anyMatches)
+                        break;
+
+                    //Has our search had to end, because one important column stopped?
+                    bool endSearch= false;
+                    //Otherwise, non-blank mismatches disable columns
+                    foreach (HypotheticalColumn col in table.Columns)
+                    {
+                        if (col.couldBeNumber && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProductNr==0)
+                        {
+                            //Ok, either this is not the number column OR we should stop now, if this column is the last remaining number column we have to stop
+                            if (table.Columns.Count(c=>c.couldBeNumber)>1)
+                                col.couldBeNumber=false;
+                            else {endSearch=true;break;}
+                        }
+                        if (col.couldBeProduct && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProduct==0)
+                        {
+                            //In THIS case with products, we should do a more detailed fuzzy and synonym text search, to catch mis-spellings or synonyms, this is not done in every case because it is SLOOOOW
+                            Document.Cells[table.y1,col.column_x]=stringAnalyzer.AnalyzeDetailed(Document.Cells[table.y1,col.column_x].content);
+
+                            //Try again
+                            if (col.couldBeProduct && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProduct==0)
+                            {
+                                //Only warn the user if this is the first occurance
+                                if (!nonProducts.Contains(Document.Cells[table.y1,col.column_x].content))
+                                {
+                                    UI.WriteLine($"På linje {table.y1+1} søjle {col.column_x+1} vurdere vi at "+Document.Cells[table.y1,col.column_x].content+" ikke er et produkt; hvis du er uenig skal det tilføjes til træningsdata og programmet bør gentrænes! Hvis ikke kan du ignorere det",true);
+
+                                }
+                                nonProducts.Add(Document.Cells[table.y1,col.column_x].content);
+
+                                //Same same
+                                if (table.Columns.Count(c=>c.couldBeProduct)>1)
+                                    col.couldBeProduct=false;
+                                else
+                                {
+                                    //If this is the last product column, we give it 2 hitpoints so to speak
+                                    if (--hp==0)
+                                    {
+                                        endSearch=true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (col.couldBeAmount && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsAmount==0)
+                        {
+                            //Same same
+                            if (table.Columns.Count(c=>c.couldBeAmount)>1)
+                                col.couldBeAmount=false;
+                            else {endSearch=true;break;}
+                        }
+                        if ((col.couldBeTotalMass || col.couldBeSingleMass) && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsSingleMass==0 && Document.Cells[table.y1,col.column_x].containsTotalMass==0)
+                        {
+                            //Same same
+                            if (table.Columns.Count(c=>c.couldBeSingleMass || c.couldBeTotalMass)>1)
+                            {
+                                col.couldBeTotalMass=false;
+                                col.couldBeSingleMass=false;
+                            }
+                            else endSearch=true;
+                        }
+
+                    }
+
+                    table.Columns.RemoveWhere(c=>c.ambiguoity==0);//Ambiguity 0 means there is literally nothing it could be
+                    if (endSearch)
+                        break;
+                }
+
+                //Now drop any tables which are obviously incomplete
+                if (table.missingAny || table.y0+1==table.y1)
+                {
+                    tables.Remove((y0,x0));
+                }
+            }
+
+            return tables.Values;
+        }
+    }
 }

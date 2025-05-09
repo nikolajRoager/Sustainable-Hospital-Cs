@@ -5,6 +5,7 @@ using System.Security.Cryptography.Pkcs;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using FuzzySharp;
 using OfficeOpenXml;
 using Services;
 using StringAnalyzer;
@@ -242,6 +243,186 @@ namespace RegexAnalyzer
             };
         }
 
+
+        /// <summary>
+        /// Run the analysis on the input, and spit out what we think it might be, with higher quality but likely slower, likely including fuzzy and synonym search
+        /// though implementation may differ
+        /// This implementation is the same as the less detailed, but with some more matches and searches
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public AnalyzedString AnalyzeDetailed(string? cell_input)
+        {
+            //The steps to analyzing a string is the following: 
+            //Check if it is empty (break early), it won't be because we likely already did the less detailed part
+            //Check if it is only a single number (break early), again, likely not
+            //Check if the string matches any known header,
+            //Check if the string matches any known product
+            //Check if the string contains mass, quantity, or product number
+
+
+            if (string.IsNullOrEmpty(cell_input))
+                return new AnalyzedString();//Returns that this is 100% guaranteed to be filler
+
+            //Check if it is just a plain integer or a plain decimal
+            var style = System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowDecimalPoint;
+            var culture = CultureInfo.InvariantCulture;
+            if (int.TryParse(cell_input, style, culture, out int myIntValue))
+            {
+                return new AnalyzedString(myIntValue,cell_input);
+            }
+            else if (double.TryParse(cell_input, style, culture, out double myDoubleValue))
+            {
+                return new AnalyzedString(myDoubleValue,cell_input);
+            }
+            //Ok, now check against all known headers, one at the time
+            //I could have made the code shorter by using a dictionary<string,set<regex>> where the string is the header type
+            //But I think the code is easier to understand conceptually if I write it out like that
+
+            bool productHeader_found = false;
+            bool NrHeader_found = false;
+            bool MassHeader_found = false;
+            bool QuantityHeader_found = false;
+
+
+            //If this product name header?
+            foreach (var header in ProductHeaders)
+                if (header.IsMatch(cell_input))
+                {
+                    productHeader_found = true;
+                    break;
+                }
+            foreach (var header in NrHeaders)
+                if (header.IsMatch(cell_input))
+                {
+                    NrHeader_found= true;
+                    break;
+                }
+            foreach (var header in MassHeaders)
+                if (header.IsMatch(cell_input))
+                {
+                    MassHeader_found= true;
+                    break;
+                }
+            foreach (var header in QuantityHeaders)
+                if (header.IsMatch(cell_input))
+                {
+                    QuantityHeader_found= true;
+                    break;
+                }
+
+            //Now, even if this can be a header, check if it could also be a product           
+            bool ProductMatch_found = false;
+            foreach (var product in Products)
+                if (product.KeyRegex.IsMatch(cell_input))
+                {
+                    ProductMatch_found= true;
+                    break;
+                }
+                else
+                {
+                    //The fuzzy search doesn't really work with regex, sadly, so split it into words and join it together
+                    var keywordList = product.keyWordList();
+                    if (Fuzz.PartialRatio(String.Join(" ", keywordList),cell_input)>80)
+                    {
+                        ProductMatch_found = true;
+                        break;
+                    }
+                    
+                }
+            
+            //It could also contain a product number
+            bool ProductNrMatch_found = false;
+            var pmatch = findProductNr.Match(cell_input);
+            string productNrMatch="";            
+            if (pmatch.Success)
+            {
+                ProductNrMatch_found = true;
+                productNrMatch=pmatch.Value;
+            }
+
+            //Oh, and check if there is an amount somewhere
+        
+            bool AmountMatch_found = false;
+            var amatch = findAmount.Match(cell_input);
+            int amount=0;
+            if (amatch.Success)
+                if (int.TryParse(amatch.Value, style, culture,out amount))
+                {
+                    //It should be a double, if not ignore it
+                    AmountMatch_found = true;
+                }
+
+            //Any indication this has to do with single or multiple
+            bool singleFound = false;
+
+            foreach (Regex Single in SingleRegices)
+            {
+                if (Single.IsMatch(cell_input))
+                {
+                    singleFound=true;
+                    break;
+                }
+            }
+            bool totalFound = false;
+            foreach (Regex Total in TotalRegices)
+            {
+                if (Total.IsMatch(cell_input))
+                {
+                    totalFound =true;
+                    break;
+                }
+            }
+
+            //Then let us check if there are any words indicating it might be mass either per unit or in total
+            double mass=0;
+            bool mass_found=false;
+
+            //And finally, check if there are masses directly included in the text
+            foreach ((Regex massRegex,double massKg) in MassUnitNames)
+            {
+                var match =(massRegex.Match(cell_input));
+                if (match.Success)
+                {
+                    if (!double.TryParse(match.Value, style, culture,out mass))
+                    {
+                        //It should be a double, if not ignore it
+                        continue;
+                    }
+                    //Convert to kg if need be
+                    mass*=massKg;
+                    mass_found=true;
+                    break;
+                }
+            }
+
+            //Ok, now combine everything, if nothing was found, it is just filler
+            if (!mass_found && !AmountMatch_found && ! productHeader_found && !NrHeader_found && !MassHeader_found &&  !ProductMatch_found && !ProductNrMatch_found && !QuantityHeader_found)
+                return new AnalyzedString(cell_input);
+            
+            //Otherwise, let us create an analyzed string with our best estimates
+            return new AnalyzedString{
+                content=cell_input,
+                filler=1,//Filler is always an option
+                //Give both the same weight
+                //If singlefound == totalfound, the mass can be either or,
+                containsTotalMass=(mass_found ) ? ((singleFound ==totalFound) ? 10 : (totalFound) ? 10 : 0) :0,
+                containsSingleMass=(mass_found ) ? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) :0,
+                isInteger =0,
+                isDecimal= 0,
+                intValue =amount,
+                doubleValue=mass,
+                productNameHeader=productHeader_found?10:0,//Give any headers found same weight
+                NrHeader=NrHeader_found?10:0,
+                SingleMassHeader=MassHeader_found? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
+                TotalMassHeader=MassHeader_found ? ((singleFound ==totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
+                QuantityHeader=QuantityHeader_found ?10:0,    
+                containsAmount=AmountMatch_found ?10:0,
+                containsProduct=ProductMatch_found?10:0,
+                containsProductNr=ProductNrMatch_found?10:AmountMatch_found?5:0,//Something which looks like amount can also be product number
+                ProductNr= ProductNrMatch_found?productNrMatch:AmountMatch_found?$"{amount}":"null"//The "amount" might be a product number
+            };
+        }
         
 
         //Everything below here is for saving, loading, and training
@@ -296,7 +477,7 @@ namespace RegexAnalyzer
 
             //Read the individual variables, until the column becomes empty
 
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 var Cell=worksheet.Cells[i, header_nameHeader].Value;
                 var CellString = Cell?.ToString();
@@ -305,7 +486,7 @@ namespace RegexAnalyzer
                 ProductHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 var Cell=worksheet.Cells[i, header_nrHeader].Value;
                 var CellString = Cell?.ToString();
@@ -314,7 +495,7 @@ namespace RegexAnalyzer
                 NrHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 var Cell=worksheet.Cells[i, header_massHeader].Value;
                 var CellString = Cell?.ToString();
@@ -323,7 +504,7 @@ namespace RegexAnalyzer
                 MassHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 var Cell=worksheet.Cells[i, header_quantityHeader].Value;
                 var CellString = Cell?.ToString();
@@ -332,7 +513,7 @@ namespace RegexAnalyzer
                 QuantityHeaders.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 var Cell=worksheet.Cells[i, header_Total].Value;
                 var CellString = Cell?.ToString();
@@ -341,7 +522,7 @@ namespace RegexAnalyzer
                 TotalRegices.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 var Cell=worksheet.Cells[i, header_Single].Value;
                 var CellString = Cell?.ToString();
@@ -350,7 +531,7 @@ namespace RegexAnalyzer
                 SingleRegices.Add(new Regex(CellString,RegexOptions.IgnoreCase));
             }
 
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 var UnitCell=worksheet.Cells[i, header_MassUnit].Value;
                 var KgCell=worksheet.Cells[i, header_Kg].Value;
@@ -373,7 +554,7 @@ namespace RegexAnalyzer
             */
                 
             Products = new();
-            for (int i = header_start+1; i < worksheet.Dimension.End.Row; i++)
+            for (int i = header_start+1; i <= worksheet.Dimension.End.Row; i++)
             {
                 //There are many ways an entry can register as empty, either one of the cell or the string value will register as null, or it will have length 0
                 //We wil throw an exception if any of those happen

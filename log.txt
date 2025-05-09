@@ -1,0 +1,6 @@
+C:\Users\Nikolaj Christensen\Sustainable-Hospital-Cs\DocumentAnalysis\DocumentAnalyzer.cs(13,26): warning CS9124: Parameter 'IUI uI' is captured into the state of the enclosing type and its value is also used to initialize a field, property, or event. [C:\Users\Nikolaj Christensen\Sustainable-Hospital-Cs\Sustainable-Hospital-Cs.csproj]
+C:\Users\Nikolaj Christensen\Sustainable-Hospital-Cs\Program.cs(163,63): warning CS8604: Possible null reference argument for parameter 'path' in 'DirectoryInfo Directory.CreateDirectory(string path)'. [C:\Users\Nikolaj Christensen\Sustainable-Hospital-Cs\Sustainable-Hospital-Cs.csproj]
+Analysere fil:
+ExampleInput\Hørkram.xlsx : out\Hørkram.xlsx
+Første analyse
+Advarsel: tomt ark: 1

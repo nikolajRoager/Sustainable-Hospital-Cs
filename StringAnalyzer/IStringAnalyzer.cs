@@ -20,10 +20,21 @@ namespace StringAnalyzer
 
         /// <summary>
         /// Run the analysis on the input, and spit out what we think it might be
+        /// This is called very often, and I assume it is less accurate 
+        /// I assume it does NOT uses fuzzy matches or check synonyms, this makes it FAST but less accurate
+        /// though implementation may differ
         /// </summary>
         /// <param name="input"></param>
         /// <returns></returns>
         public AnalyzedString Analyze(string? input);
 
+
+        /// <summary>
+        /// Run the analysis on the input, and spit out what we think it might be, with higher quality but likely slower, likely including fuzzy and synonym search
+        /// though implementation may differ
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        public AnalyzedString AnalyzeDetailed(string? input);
     }
 }

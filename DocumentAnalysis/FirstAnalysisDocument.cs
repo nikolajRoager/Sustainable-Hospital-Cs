@@ -8,6 +8,7 @@ namespace DocumentAnalysis
     /// </summary>
     public class FirstAnalysisDocument
     {
+        public string Name { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
 
@@ -16,13 +17,12 @@ namespace DocumentAnalysis
         /// </summary>
         public AnalyzedString[,] Cells {get; set;}
 
-        public FirstAnalysisDocument(int Height, int Width)
+        public FirstAnalysisDocument(string Name,int Height, int Width)
         {
+            this.Name = Name;
             this.Width = Width;
             this.Height = Height;
             Cells = new AnalyzedString[Height,Width];
         } 
-
-
     }
 }

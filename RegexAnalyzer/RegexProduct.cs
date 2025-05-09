@@ -39,7 +39,8 @@ namespace RegexAnalyzer
         [OnDeserialized]
         internal void OnDeserializedMethod(StreamingContext context)
         {
-            KeyRegex = new Regex(Keyword,RegexOptions.IgnoreCase);
+            Console.WriteLine("DESERIALIZE "+Keyword.ToLower());
+            KeyRegex = new Regex(Keyword.ToLower(),RegexOptions.IgnoreCase);
         }
         
 
@@ -52,10 +53,16 @@ namespace RegexAnalyzer
         /// <param name="keyword"></param>
         public RegexProduct(string category, string Material, string keyword)
         {
-            this.KeyRegex = new Regex(keyword,RegexOptions.IgnoreCase);
             this.Keyword=keyword;
+            Console.WriteLine("NODESERIALIZE "+Keyword.ToLower());
+            this.KeyRegex = new Regex(keyword.ToLower(),RegexOptions.IgnoreCase);
             this.Material=Material.ToLower();
             this.Category=category.ToLower();
+        }
+
+        public string[] keyWordList ()
+        {
+            return Keyword.Split(" ,.*?",StringSplitOptions.RemoveEmptyEntries);
         }
 
         public int CompareTo(IProduct? other)

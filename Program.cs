@@ -5,6 +5,7 @@ using Services;
 using UserInterface;
 using DocumentAnalysis;
 using System.Drawing;
+using System.Text.RegularExpressions;
 static class Program
 {
     public class Options
@@ -21,8 +22,11 @@ static class Program
         
         [Option('t',"train", HelpText = "Run in training mode; will be overwritten and forced to true if an input tabel is included")]
         public bool trainMode{get; set;} =false;
-        [Option('e',"visual-example", HelpText = "create a visual analyzed example of an excel file, or all files within a directory",Default =null)]
-        public string? visualExample{get; set;} = null;
+        [Option('f',"file-or-folder", HelpText = "file or folder to analyze, by defeault creates a visual analyzed for the first pass example of an excel file, or all files within a directory",Default =null)]
+        public string? fileOrFolder{get; set;} = null;
+        [Option('2',"second-pass", HelpText = "Run second pass, and print progress, requires file",Default =false)]
+        public bool secondPass{get; set;} = false;
+        
         
     }
     static void Main(string[] args)
@@ -102,44 +106,44 @@ static class Program
                     return;
                 }
             }
-            if (o.visualExample!=null)
+            if (o.fileOrFolder!=null)
             {
                 //Clean up input
-                o.visualExample=o.visualExample.TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
+                o.fileOrFolder=o.fileOrFolder.TrimEnd(Path.DirectorySeparatorChar,Path.AltDirectorySeparatorChar);
                 //Check how many files we are going to loop over
                 Dictionary<string, string> FromTo=new();
                 try
                 {
-                    FileAttributes attributes = File.GetAttributes(o.visualExample);
+                    FileAttributes attributes = File.GetAttributes(o.fileOrFolder);
                     //If it is a directory, we want to copy the entire structure to output/
                     if ((attributes & FileAttributes.Directory)==FileAttributes.Directory)
                     {
-                        string[] inputFiles = Directory.GetFiles(o.visualExample,"*.xlsx",SearchOption.AllDirectories);
+                        string[] inputFiles = Directory.GetFiles(o.fileOrFolder,"*.xlsx",SearchOption.AllDirectories);
                         foreach (string file in inputFiles )
                         {
-                            FromTo[file]=Path.Combine("out",file.Replace(o.visualExample+Path.DirectorySeparatorChar,""));
+                            FromTo[file]=Path.Combine("out",file.Replace(o.fileOrFolder+Path.DirectorySeparatorChar,""));
                         }
                     }
                     else
                     {
-                        if (!File.Exists(o.visualExample))
+                        if (!File.Exists(o.fileOrFolder))
                         {
-                            throw new ArgumentException("Fil "+o.visualExample+" ikke fundet!");
+                            throw new ArgumentException("Fil "+o.fileOrFolder+" ikke fundet!");
                         }
-                        FromTo[o.visualExample]=Path.Combine("out",Path.GetFileName(o.visualExample));
+                        FromTo[o.fileOrFolder]=Path.Combine("out",Path.GetFileName(o.fileOrFolder));
                     }
                 }
                 catch (Exception ex)
                 {
                     Console.ForegroundColor = ConsoleColor.Red;
-                    Console.WriteLine("Kunne ikke finde filer i "+o.visualExample+", da der var et problem : "+ex.Message);
+                    Console.WriteLine("Kunne ikke finde filer i "+o.fileOrFolder+", da der var et problem : "+ex.Message);
                     return;
                 }
 
-                DocumentAnalyzer documentAnalyzer = new(stringAnalyzer);
+                DocumentAnalyzer documentAnalyzer = new(stringAnalyzer,CUI);
 
                 //Ok, now start looping through the files
-                Console.WriteLine("Analyzing files:");
+                Console.WriteLine("Analysere fil:");
                 foreach (var pair in FromTo)
                 {
                     Console.WriteLine(pair.Key+" : "+pair.Value);
@@ -148,11 +152,16 @@ static class Program
                         //TEMPORARY, load an excel document and perform analysis
                         using (ExcelPackage package = new ExcelPackage(new FileInfo(pair.Key)))
                         {
-                            documentAnalyzer.firstPass(package,true);
+
+                            if (o.secondPass)
+                                documentAnalyzer.twoPass(package,true);
+                            else
+                                documentAnalyzer.firstPass(package,true);
                             //VisualAnalyzer.vizualizeCellAnalysis(package,stringAnalyzer);
-                            Console.WriteLine("Saving");
-                            if (Path.GetDirectoryName(pair.Value)!=null)//I don't think the compiler warning here can be fixed, I think you can safely ignore it
-                                Directory.CreateDirectory(Path.GetDirectoryName(pair.Value));
+                            Console.WriteLine("Gemmer");
+                            if (pair.Value!=null)//I don't think the compiler warning here can be fixed, I think you can safely ignore it
+                                if (Path.GetDirectoryName(pair.Value)!=null)//I don't think the compiler warning here can be fixed, I think you can safely ignore it
+                                    Directory.CreateDirectory(Path.GetDirectoryName(pair.Value));
                             package.SaveAs(pair.Value);
                         }
                     }
