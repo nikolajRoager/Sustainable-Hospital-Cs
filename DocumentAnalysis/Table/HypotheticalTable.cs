@@ -52,6 +52,18 @@ namespace DocumentAnalysis
             }
         }
 
+        /// <summary>
+        /// Is anything IMPORTANT missing from the columns!?
+        /// Returns true if we do not have amount or masses (which we can o deduce amount from) and product
+        /// </summary>
+        public bool missingEssential
+        {
+            get
+            {
+                return Columns.Count(c=>c.couldBeProduct)==0;
+            }
+        }
+
 
 /// <summary>
 /// Add a potential column to this potential table, the table takes care of registering it correctly

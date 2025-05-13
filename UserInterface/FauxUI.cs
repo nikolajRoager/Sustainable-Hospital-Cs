@@ -34,5 +34,10 @@ namespace UserInterface
         {
             //Nothing ...
         }
+
+        public string ReadLine(string line,bool warning=false)
+        {
+            return "null";
+        }
     }
 }

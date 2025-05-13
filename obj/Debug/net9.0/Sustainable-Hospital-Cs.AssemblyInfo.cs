@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Sustainable-Hospital-Cs")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+38bc0713a09c9ce562960ea8edec7dc5f7d4b909")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+59f4130c38a594ca7e5095eda17f6a5d8fd1dce0")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sustainable-Hospital-Cs")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sustainable-Hospital-Cs")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

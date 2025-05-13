@@ -62,5 +62,18 @@ namespace UserInterface
             }
             Console.WriteLine(line);
         }
+
+        public string ReadLine(string line,bool warning=false)
+        {
+            if (warning)
+            {
+                Console.ForegroundColor= warningColor;
+                Console.Write("Advarsel: ");
+                Console.ForegroundColor= defaultColor;
+            }
+            Console.WriteLine(line);
+            string? input = Console.ReadLine();
+            return input==null?"":input;
+        }
     }
 }

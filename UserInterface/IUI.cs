@@ -20,5 +20,13 @@ namespace UserInterface
         /// <returns></returns>
 
         public void WriteLine(string line,bool warning=false);
+
+        /// <summary>
+        /// Inform the user that they need to write stuff
+        /// </summary>
+        /// <param name="line"></param>
+        /// <returns></returns>
+
+        public string ReadLine(string line,bool warning=false);
     }
 }

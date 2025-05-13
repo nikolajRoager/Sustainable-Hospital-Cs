@@ -141,17 +141,16 @@ namespace DocumentAnalysis
         /// Make both first and second pass, and optionally display what happened
         /// </summary>
         /// <param name="package"></param>
-        /// <param name="uI"></param>
         /// <param name="visual"></param>
-        public void twoPass(ExcelPackage package, bool visual=false)
+        public void Analyze(ExcelPackage package, bool visual=false,bool noAdd=false)
         {
-            uI.WriteLine("Første analyse");
+            UI.WriteLine("Første analyse");
             var documents = firstPass(package,visual);
-            uI.WriteLine("Anden analyse");
+            UI.WriteLine("Anden analyse");
             for (int i = 0; i < documents.Count; ++i)
             {
-                uI.WriteLine($"{i+1}/{documents.Count}");
-                var tables = secondPass(documents[i]);
+                UI.WriteLine($"{i+1}/{documents.Count}");
+                var tables = secondPass(documents[i],noAdd);
 
                 if (visual)
                 {
@@ -168,7 +167,7 @@ namespace DocumentAnalysis
 
                             //Update header to say what we think it is
                             newSheet.Cells[table.y0+1,col.column_x+1].Value =
-                                $"{(col.couldBeProduct ? "PRODUKT, ":"" )}{(col.couldBeNumber? "VARENR, ":"" )}{(col.couldBeAmount? "ANTAL, ":"" )}{(col.couldBeSingleMass? "STK. MASSE, ":"" )}{(col.couldBeSingleMass? "TOTAL MASSE ":"" )}";
+                                $"{(col.couldBeProduct ? $"PRODUKT {table.Columns.Count(c=>c.couldBeProduct)}, ":"" )}{(col.couldBeNumber? $"VARENR  {table.Columns.Count(c=>c.couldBeNumber)}, ":"" )}{(col.couldBeAmount? $"ANTAL {table.Columns.Count(c=>c.couldBeAmount)}, ":"" )}{(col.couldBeSingleMass? $"STK. MASSE {table.Columns.Count(c=>c.couldBeSingleMass)}, ":"" )}{(col.couldBeSingleMass? $"TOTAL MASSE {table.Columns.Count(c=>c.couldBeTotalMass)}":"" )}";
 
                             for (int y = table.y0+1; y <table.y1; ++y)
                             {
@@ -180,11 +179,12 @@ namespace DocumentAnalysis
             }
         }
 
-        public IEnumerable<hypotheticalTable> secondPass(FirstAnalysisDocument Document)
+        public IEnumerable<hypotheticalTable> secondPass(FirstAnalysisDocument Document,bool noAdd=false)
         {
 
             HashSet<string> nonProducts=new();//Things we already warned the user is not a product, no need to warn them again
-            int hp=20;//We give the tables 2 hit-points, they can survive 1 unkknown product without quiting
+            int hpMax = 4;
+            int hp=hpMax;//We give the tables 4 hit-points, they can survive 3 unkknown product just after each other without quiting
 
             //There may be several tables in the same document
             Dictionary<(int,int),hypotheticalTable> tables = new ();
@@ -196,7 +196,14 @@ namespace DocumentAnalysis
                 for (int x = 0; x < Document.Width; ++x)
                 {
                     //Skip things which could be a product
-                    if (Document.Cells[y,x].containsProduct==0)
+                    if (Document.Cells[y,x].containsProduct==0 &&
+                          ((Document.Cells[y,x].NrHeader>0)
+                        || (Document.Cells[y,x].QuantityHeader>0)
+                        || (Document.Cells[y,x].TotalMassHeader>0)
+                        || (Document.Cells[y,x].SingleMassHeader>0)
+                        || Document.Cells[y,x].productNameHeader>0))
+                    {
+                        //product names can contain a lot of information
                         thisTable.Add(new HypotheticalColumn{
                             couldBeNumber=Document.Cells[y,x].NrHeader>0 || Document.Cells[y,x].productNameHeader>0,
                             couldBeAmount=Document.Cells[y,x].QuantityHeader>0 || Document.Cells[y,x].productNameHeader>0,
@@ -204,6 +211,9 @@ namespace DocumentAnalysis
                             couldBeSingleMass=Document.Cells[y,x].SingleMassHeader>0 || Document.Cells[y,x].productNameHeader>0,
                             couldBeProduct=Document.Cells[y,x].productNameHeader>0,
                             column_x=x});
+                    }
+                    
+
                 }
 
                 //Only add if we detected all headers
@@ -223,6 +233,7 @@ namespace DocumentAnalysis
                 //Extend the size of the table as we go
                 for (table.y1 = y0+1; table.y1 < Document.Height; ++table.y1)
                 {
+
                     //Check for overlap with other tables below this
 
                     foreach (((int y02,int x02),hypotheticalTable other) in tables)
@@ -230,7 +241,9 @@ namespace DocumentAnalysis
                     {
                       //These are all the ways there can be overlap, if there is break!!!
                         if ( (table.x0<other.x0 && table.x1>other.x0) ||  (table.x0<other.x1 && table.x1>other.x1)  ||  (other.x0<table.x0 && other.x1>table.x0)   ||  (other.x0<table.x1 && other.x1>table.x1) )
+                        {
                            break;
+                        }
                     }
 
                     //Check if ALL suddenly stopped at the same time, in that case we simply stop
@@ -264,12 +277,19 @@ namespace DocumentAnalysis
                     //Otherwise, non-blank mismatches disable columns
                     foreach (HypotheticalColumn col in table.Columns)
                     {
+                        //Re-analyze if something has changed, this makes it slower but is needed
+                        if (stringAnalyzer.isModified)
+                            Document.Cells[table.y1,col.column_x]=stringAnalyzer.Analyze(Document.Cells[table.y1,col.column_x].content);
                         if (col.couldBeNumber && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProductNr==0)
                         {
                             //Ok, either this is not the number column OR we should stop now, if this column is the last remaining number column we have to stop
                             if (table.Columns.Count(c=>c.couldBeNumber)>1)
                                 col.couldBeNumber=false;
-                            else {endSearch=true;break;}
+                            else {
+                                //Product number is not STRICTLY required
+                                /*endSearch=true;break;*/
+                                col.couldBeNumber=false;
+                                }
                         }
                         if (col.couldBeProduct && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProduct==0)
                         {
@@ -279,28 +299,44 @@ namespace DocumentAnalysis
                             //Try again
                             if (col.couldBeProduct && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsProduct==0)
                             {
-                                //Only warn the user if this is the first occurance
-                                if (!nonProducts.Contains(Document.Cells[table.y1,col.column_x].content))
+                                //Only warn the user if this is the first occurance, and if we are allowed to bother them
+                                int userOptionAddNewProduct=0;
+                                if (!nonProducts.Contains(Document.Cells[table.y1,col.column_x].content) && !noAdd)
                                 {
                                     UI.WriteLine($"På linje {table.y1+1} søjle {col.column_x+1} vurdere vi at "+Document.Cells[table.y1,col.column_x].content+" ikke er et produkt; hvis du er uenig skal det tilføjes til træningsdata og programmet bør gentrænes! Hvis ikke kan du ignorere det",true);
-
+                                    userOptionAddNewProduct = UI.selectOption($"Hvad skal vi gøre?",["Ikke et produkt!","Tilføj nyt produkt"]);
                                 }
-                                nonProducts.Add(Document.Cells[table.y1,col.column_x].content);
-
-                                //Same same
-                                if (table.Columns.Count(c=>c.couldBeProduct)>1)
-                                    col.couldBeProduct=false;
+                                if (userOptionAddNewProduct==1 && stringAnalyzer.retrainWord(Document.Cells[table.y1,col.column_x].content))
+                                {
+                                    //The user fixed the error, now this IS a product, go on then
+                                }
                                 else
                                 {
-                                    //If this is the last product column, we give it 2 hitpoints so to speak
-                                    if (--hp==0)
+                                    nonProducts.Add(Document.Cells[table.y1,col.column_x].content);
+
+                                    //Same same
+                                    if (table.Columns.Count(c=>c.couldBeProduct)>1)
                                     {
-                                        endSearch=true;
-                                        break;
+
+                                        col.couldBeProduct=false;
                                     }
+                                    else
+                                    {
+                                        //If this is the last product column, we give it 2 hitpoints so to speak
+                                        if (--hp==0)
+                                        {
+                                            endSearch=true;
+                                            break;
+                                        }
+                                    }
+
                                 }
                             }
+                            else//Any good match resets the hp for the product comparison
+                                hp=hpMax;
                         }
+                        else
+                            hp=hpMax;
                         if (col.couldBeAmount && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsAmount==0)
                         {
                             //Same same
@@ -320,20 +356,22 @@ namespace DocumentAnalysis
                         }
 
                     }
-
                     table.Columns.RemoveWhere(c=>c.ambiguoity==0);//Ambiguity 0 means there is literally nothing it could be
                     if (endSearch)
                         break;
                 }
 
                 //Now drop any tables which are obviously incomplete
-                if (table.missingAny || table.y0+1==table.y1)
+                if (table.missingEssential || table.y0+1==table.y1)
                 {
                     tables.Remove((y0,x0));
                 }
             }
-
             return tables.Values;
+        }
+        public hypotheticalTable? thirdPass(hypotheticalTable table)
+        {
+            return null;
         }
     }
 }

@@ -10,7 +10,7 @@ namespace DocumentAnalysis
         /// <summary>
         /// How many different things can this column be
         /// </summary>
-        public int ambiguoity { get{return (couldBeAmount?1:0) +(couldBeNumber?1:0)+(couldBeProduct?1:0)+(couldBeTotalMass?1:0)+(couldBeTotalMass?1:0);} }
+        public int ambiguoity { get{return (couldBeNumber?1:0)+(couldBeProduct?1:0)+(couldBeSingleMass?1:0)+(couldBeAmount?1:0)+(couldBeTotalMass?1:0);} }
         public bool couldBeProduct { get; set; } = false;
         public bool couldBeNumber { get; set; } = false;
         public bool couldBeSingleMass { get; set; } = false;

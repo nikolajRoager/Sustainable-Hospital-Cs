@@ -1,11 +1,8 @@
-﻿using System.Data;
-using OfficeOpenXml;
+﻿using OfficeOpenXml;
 using CommandLine;
 using Services;
 using UserInterface;
 using DocumentAnalysis;
-using System.Drawing;
-using System.Text.RegularExpressions;
 static class Program
 {
     public class Options
@@ -24,8 +21,8 @@ static class Program
         public bool trainMode{get; set;} =false;
         [Option('f',"file-or-folder", HelpText = "file or folder to analyze, by defeault creates a visual analyzed for the first pass example of an excel file, or all files within a directory",Default =null)]
         public string? fileOrFolder{get; set;} = null;
-        [Option('2',"second-pass", HelpText = "Run second pass, and print progress, requires file",Default =false)]
-        public bool secondPass{get; set;} = false;
+        [Option('n',"no-add", HelpText = "Do not allow adding new products to training data while running",Default =false)]
+        public bool noAdd {get; set;} = false;
         
         
     }
@@ -41,12 +38,17 @@ static class Program
 
             ConsoleUI CUI = new ConsoleUI();
 
+            //Set up a file writer which writes to a persistent file
+            string UserdataPath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SustainableHospital");
+            //Create the directory if it doesn't exist
+            Directory.CreateDirectory(UserdataPath);
+            string  SavedLibrary = Path.Combine(UserdataPath,"ProduktLibrary.json");
 
-            //Set up dictionary 
+            //Set up dictionary and regex analyzer
             try
             {
                 synonyms = new (o.synonymDictionary,'\t',';',["..","nogen/noget","(",")"]);
-                stringAnalyzer = new (synonyms);
+                stringAnalyzer = new (synonyms,CUI);
             }
             catch (Exception ex)
             {
@@ -54,12 +56,6 @@ static class Program
                 Console.WriteLine(ex.Message);
                 return;
             }
-
-            //Set up a file writer which writes to a persistent file
-            string UserdataPath=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"SustainableHospital");
-            //Create the directory if it doesn't exist
-            Directory.CreateDirectory(UserdataPath);
-            string  SavedLibrary = Path.Combine(UserdataPath,"ProduktLibrary.json");
 
 
             if (o.trainMode)
@@ -69,8 +65,7 @@ static class Program
                 try
                 {
 
-                    FileWriter fileWriter = new(SavedLibrary);
-                    string ExcelfilePath = "VareTypeBibliotek.xlsx";
+                    string ExcelfilePath = o.productLibrary;
 
                     if (!File.Exists(ExcelfilePath))
                     {
@@ -79,7 +74,8 @@ static class Program
                     else
                         using (ExcelPackage package = new ExcelPackage(new FileInfo(ExcelfilePath)))
                         {
-                            stringAnalyzer.train(fileWriter,package,CUI);
+                            FileWriter fileWriter = new(SavedLibrary);
+                            stringAnalyzer.train(package,fileWriter );
                             fileWriter.save();
                         }
                 }
@@ -95,8 +91,8 @@ static class Program
                 //Set up dictionary and library, maybe stop with errors
                 try
                 {
-                    FileReader reader = new(SavedLibrary);
-                    stringAnalyzer.load(reader);
+                    FileReader fileReader= new(SavedLibrary);
+                    stringAnalyzer.load(fileReader);
 
                 }
                 catch (Exception ex)
@@ -153,15 +149,15 @@ static class Program
                         using (ExcelPackage package = new ExcelPackage(new FileInfo(pair.Key)))
                         {
 
-                            if (o.secondPass)
-                                documentAnalyzer.twoPass(package,true);
-                            else
-                                documentAnalyzer.firstPass(package,true);
+                            documentAnalyzer.Analyze(package,true,o.noAdd);
                             //VisualAnalyzer.vizualizeCellAnalysis(package,stringAnalyzer);
                             Console.WriteLine("Gemmer");
                             if (pair.Value!=null)//I don't think the compiler warning here can be fixed, I think you can safely ignore it
-                                if (Path.GetDirectoryName(pair.Value)!=null)//I don't think the compiler warning here can be fixed, I think you can safely ignore it
-                                    Directory.CreateDirectory(Path.GetDirectoryName(pair.Value));
+                            {
+                                var dirName = Path.GetDirectoryName(pair.Value);
+                                if (dirName!=null)
+                                    Directory.CreateDirectory(dirName);
+                            }
                             package.SaveAs(pair.Value);
                         }
                     }
@@ -173,10 +169,18 @@ static class Program
                         Console.ForegroundColor = original;
                     }
                 }
+
+                if (stringAnalyzer.isModified)
+                {
+                    if (CUI.selectOption("Skal vi gemme ændringerne i træningsdata", [$"Ja, gem i {SavedLibrary}", "Nej"])==0)
+                    {
+                        FileWriter fileWriter = new(SavedLibrary);
+                        stringAnalyzer.save(fileWriter );
+                        fileWriter.save();
+                    }
+                }
             }
         });
-
-
         return;
     }
 }

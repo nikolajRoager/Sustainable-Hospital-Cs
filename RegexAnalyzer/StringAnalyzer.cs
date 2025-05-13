@@ -2,6 +2,7 @@
 using System.Drawing;
 using System.Globalization;
 using System.Security.Cryptography.Pkcs;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -16,13 +17,16 @@ namespace RegexAnalyzer
     /// The default constructor creates an empty analyzer without any training
     /// </summary>
     /// <param name="dictionary"></param>
-    public class RegexAnalyzer(SynonymDictionary dictionary) : IStringAnalyzer
+    public class RegexAnalyzer(SynonymDictionary dictionary, IUI UserInterface) : IStringAnalyzer
     {
+        IUI UserInterface= UserInterface ;
 
     //Integer, not part of decimal using negative lookbehind
-        static Regex findInteger = new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?!.\d)",RegexOptions.IgnoreCase);
+        static Regex findInteger = new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?!\.\d)",RegexOptions.IgnoreCase);
     //Decimal marker .;  , may be used to divide thousands (optional)
-        static Regex findDecimal =new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:,\d{3})+|\d+).?\d+(?!\d)",RegexOptions.IgnoreCase);
+        static Regex findDecimal =new Regex(@"(?<![\d])\-?(?:\d{1,3}(?:,\d{3})+|\d+)\.?\d+(?!\d)",RegexOptions.IgnoreCase);
+    //                                                  -49.69
+    //                                                   49.69
 
         //Product numbers occationally include a - in the middle
         static Regex findProductNr = new Regex(@"\d+\-\d+",RegexOptions.IgnoreCase);
@@ -32,9 +36,9 @@ namespace RegexAnalyzer
             23453 not a product number
         */
         
-        static Regex findAmount = new Regex(@"(?<![\d:-])\d+",RegexOptions.IgnoreCase);
+        static Regex findAmount = new Regex(@"(?<![\d:\-])\-?\d+",RegexOptions.IgnoreCase);
         /*Try it out on this example:
-            23020-23423 454 first is a product number
+            23020 -23423 454 first is a product number
             -324324 not a product number
             23453 not a product number
         */
@@ -80,6 +84,30 @@ namespace RegexAnalyzer
         /// </summary>
         HashSet<string> Materials=new();
 
+        public void save(IFileWriter PersistFile)
+        {
+            //Now save this to the persistent file as json
+            var jsonOptions = new JsonSerializerOptions
+            {
+                WriteIndented=true,//This is just nicer to look at when debugging
+            };
+
+
+            SerializableVariables variables = new SerializableVariables {
+                Products=Products.ToList(),
+                ProductHeaders=ProductHeaders.Select(regex => regex.ToString()).ToList(),
+                ProductNumberHeaders=NrHeaders.Select(regex => regex.ToString()).ToList(),
+                MassKgNames =MassHeaders.Select(regex => regex.ToString()).ToList(),
+                QuantityHeaders=QuantityHeaders.Select(regex => regex.ToString()).ToList(),
+                TotalRegices=TotalRegices.Select(regex => regex.ToString()).ToList(),
+                SingleRegices=SingleRegices.Select(regex => regex.ToString()).ToList(),
+                MassNames=MassUnitNames.Keys.Select(regex => regex.ToString()).ToList(),
+                MassUnits=MassUnitNames.Values.ToList()
+            };
+
+            
+            PersistFile.writeLine(JsonSerializer.Serialize(variables,jsonOptions));
+        }
         
         public AnalyzedString Analyze(string? cell_input)
         {
@@ -90,18 +118,18 @@ namespace RegexAnalyzer
             //Check if the string matches any known product
             //Check if the string contains mass, quantity, or product number
 
-
             if (string.IsNullOrEmpty(cell_input))
                 return new AnalyzedString();//Returns that this is 100% guaranteed to be filler
 
             //Check if it is just a plain integer or a plain decimal
             var style = System.Globalization.NumberStyles.AllowThousands | System.Globalization.NumberStyles.AllowDecimalPoint;
             var culture = CultureInfo.InvariantCulture;
-            if (int.TryParse(cell_input, style, culture, out int myIntValue))
+
+            if (int.TryParse(cell_input, out int myIntValue))
             {
                 return new AnalyzedString(myIntValue,cell_input);
             }
-            else if (double.TryParse(cell_input, style, culture, out double myDoubleValue))
+            else if (double.TryParse(cell_input, out double myDoubleValue))
             {
                 return new AnalyzedString(myDoubleValue,cell_input);
             }
@@ -328,7 +356,6 @@ namespace RegexAnalyzer
                         ProductMatch_found = true;
                         break;
                     }
-                    
                 }
             
             //It could also contain a product number
@@ -452,7 +479,7 @@ namespace RegexAnalyzer
             public List<double> MassUnits {get;set;} = null!;
         }
 
-        public void train(IFileWriter PersistFile, ExcelPackage package, IUI UserInterface)
+        public void train(ExcelPackage package, IFileWriter PersistFile)
         {
 
             //What replacements do we need to make?
@@ -544,9 +571,9 @@ namespace RegexAnalyzer
                 /*
                     90kg
                     90.0kg
-                    6 90.0 kg 5-343
+                    6 -90.0 kg 5-343
                 */   
-                MassUnitNames[new Regex(@"\b\d+(?:\.\d+?)?(?=\s?"+UnitCellString+@"\b)",RegexOptions.IgnoreCase)] = double.Parse(KgCellString);
+                MassUnitNames[new Regex(@"\b\-?\d+(?:\.\d+?)?(?=\s?"+UnitCellString+@"\b)",RegexOptions.IgnoreCase)] = double.Parse(KgCellString);
             }
 
             /*
@@ -741,7 +768,7 @@ namespace RegexAnalyzer
         /// </summary>
         /// <param name="PersistReader"></param>
         /// <exception cref="Exception"></exception>
-        public void load(IFileReader PersistReader)
+        public void load( IFileReader PersistReader)
         {  
             string jsonString = "";
             foreach (string line in PersistReader.ReadLines())
@@ -758,7 +785,12 @@ namespace RegexAnalyzer
 
             Products=new();
             foreach (var p in variables.Products)
+            {
+
                 Products.Add(p);
+                Materials.Add(p.Material);
+                categories.Add(p.Category);
+            }
 
             ProductHeaders=variables.ProductHeaders.Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
             NrHeaders =variables.ProductNumberHeaders.Select(regex => new Regex(regex,RegexOptions.IgnoreCase)).ToList();
@@ -770,6 +802,54 @@ namespace RegexAnalyzer
             for (int i = 0; i < variables.MassUnits.Count; ++i)
                 MassUnitNames[new Regex(variables.MassNames[i],RegexOptions.IgnoreCase)]=variables.MassUnits[i];
 
+        }
+
+        private bool _isModified=false;
+        public bool isModified { get {return _isModified;} }
+        public bool retrainWord(string word)
+        {
+            //Let the user fix the error
+            int addNewName = UserInterface.selectOption($"Brug {word} som produktnavn:",["Ja","Nej, lad mig inputte navn"]);
+            string newName =word;
+            if (addNewName==1)
+            {
+                newName = UserInterface.ReadLine("indtast produkt navn:");
+            }
+            var cats = categories.ToList();
+            cats.Add("Lad mig indtaste ny kategori");
+            int cat = UserInterface.selectOption($"Vælg varekategori",cats);
+
+            string category=cats[cat];
+            if (cat==categories.Count)
+            {
+                category= UserInterface.ReadLine("indtast kategori:");
+            }
+
+            var ingredients= Materials.ToList();
+            ingredients.Add("Lad mig indtaste ny råvare");
+            int ing= UserInterface.selectOption($"Vælg råvare",ingredients);
+
+            string ingredient=ingredients[ing];
+            if (ing==Materials.Count)
+            {
+                ingredient= UserInterface.ReadLine("indtast råvare:");
+            }
+
+            try
+            {
+                //Add as a new product
+                RegexProduct regexProduct=new RegexProduct(category,ingredient,newName);
+                Materials.Add(ingredient);
+                categories.Add(category);
+                Products.Add(regexProduct);
+                _isModified=true;
+                return true;//It worked
+            }
+            catch (Exception ex)
+            {
+                UserInterface.WriteLine("Der var et problem: "+ex.Message+" springer over produkt",true);
+                return false;
+            }
         }
     }
 }

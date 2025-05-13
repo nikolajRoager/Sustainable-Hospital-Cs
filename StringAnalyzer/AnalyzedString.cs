@@ -195,7 +195,7 @@ namespace StringAnalyzer
             //Maybe... mass, certainly not amount, unless it is actually an int
             containsTotalMass=5;
             containsSingleMass=5;
-            containsAmount=(doubleValue==(int)(doubleValue) ? 2 :0);//The fact we got sent it as a double, means it had a period, so i doubt it is an int
+            containsAmount=(doubleValue==(int)(doubleValue) ? 2 :1);//The fact we got sent it as a double, means it had a period, so i doubt it is an int... but you know, it could still maybe be amount
             isInteger =(doubleValue==(int)(doubleValue) ? 3 :0);//The fact we got sent it as a double, means it had a period, so i doubt it is an int
             isDecimal= 10;
             containsProductNr =(doubleValue==(int)(doubleValue) ? 1 :0);//I highly doubt this is product nr BUT IT COULD BE

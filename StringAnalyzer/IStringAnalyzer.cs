@@ -14,9 +14,15 @@ namespace StringAnalyzer
         /// <summary>
         /// Re-train the analyzer, so it can work on different products or different languages, it will ask the user for additional information and files
         /// </summary>
-        public void train(IFileWriter PersistFile, ExcelPackage library, IUI UserInterface);
+        public void train(ExcelPackage library, IFileWriter PersistFile);
+
+        public bool retrainWord (string word);
 
         public void load(IFileReader PersistReader);
+
+        public void save(IFileWriter fileWriter);
+
+        public bool isModified { get; }
 
         /// <summary>
         /// Run the analysis on the input, and spit out what we think it might be
