@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Security.Cryptography.Pkcs;
 using OfficeOpenXml;
 using StringAnalyzer;
 using UserInterface;
@@ -152,6 +153,9 @@ namespace DocumentAnalysis
                 UI.WriteLine($"{i+1}/{documents.Count}");
                 var tables = secondPass(documents[i],noAdd);
 
+                foreach (var table in tables)
+                    thirdPass(table);
+
                 if (visual)
                 {
                     //copy the original sheet
@@ -183,8 +187,6 @@ namespace DocumentAnalysis
         {
 
             HashSet<string> nonProducts=new();//Things we already warned the user is not a product, no need to warn them again
-            int hpMax = 4;
-            int hp=hpMax;//We give the tables 4 hit-points, they can survive 3 unkknown product just after each other without quiting
 
             //There may be several tables in the same document
             Dictionary<(int,int),hypotheticalTable> tables = new ();
@@ -192,16 +194,15 @@ namespace DocumentAnalysis
             for (int y = 0; y < Document.Height; ++y)
             {
                 hypotheticalTable thisTable = new(y);
-
                 for (int x = 0; x < Document.Width; ++x)
                 {
                     //Skip things which could be a product
-                    if (Document.Cells[y,x].containsProduct==0 &&
+                    if     (Document.Cells[y,x].containsProduct==0 &&
                           ((Document.Cells[y,x].NrHeader>0)
                         || (Document.Cells[y,x].QuantityHeader>0)
                         || (Document.Cells[y,x].TotalMassHeader>0)
                         || (Document.Cells[y,x].SingleMassHeader>0)
-                        || Document.Cells[y,x].productNameHeader>0))
+                        ||  Document.Cells[y,x].productNameHeader>0))
                     {
                         //product names can contain a lot of information
                         thisTable.Add(new HypotheticalColumn{
@@ -212,8 +213,6 @@ namespace DocumentAnalysis
                             couldBeProduct=Document.Cells[y,x].productNameHeader>0,
                             column_x=x});
                     }
-                    
-
                 }
 
                 //Only add if we detected all headers
@@ -317,13 +316,10 @@ namespace DocumentAnalysis
                                     //Same same
                                     if (table.Columns.Count(c=>c.couldBeProduct)>1)
                                     {
-
                                         col.couldBeProduct=false;
                                     }
                                     else
                                     {
-                                        //If this is the last product column, we give it 2 hitpoints so to speak
-                                        if (--hp==0)
                                         {
                                             endSearch=true;
                                             break;
@@ -332,11 +328,7 @@ namespace DocumentAnalysis
 
                                 }
                             }
-                            else//Any good match resets the hp for the product comparison
-                                hp=hpMax;
                         }
-                        else
-                            hp=hpMax;
                         if (col.couldBeAmount && !String.IsNullOrEmpty(Document.Cells[table.y1,col.column_x].content) && Document.Cells[table.y1,col.column_x].containsAmount==0)
                         {
                             //Same same
@@ -354,23 +346,29 @@ namespace DocumentAnalysis
                             }
                             else endSearch=true;
                         }
-
                     }
                     table.Columns.RemoveWhere(c=>c.ambiguoity==0);//Ambiguity 0 means there is literally nothing it could be
                     if (endSearch)
                         break;
                 }
 
+            if (table.Columns.Count(c=>c.couldBeProduct)>1)
+                throw new Exception("Tabel med mere end en produktkollone fundet... eller også er excel dokumentet ikke et format vi kan analysere");
                 //Now drop any tables which are obviously incomplete
                 if (table.missingEssential || table.y0+1==table.y1)
                 {
                     tables.Remove((y0,x0));
                 }
             }
+
             return tables.Values;
         }
+
         public hypotheticalTable? thirdPass(hypotheticalTable table)
         {
+
+            {
+            }
             return null;
         }
     }

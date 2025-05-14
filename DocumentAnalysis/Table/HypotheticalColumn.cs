@@ -1,12 +1,27 @@
+using StringAnalyzer;
+
 namespace DocumentAnalysis
 {
 
     /// <summary>
     /// A hypothetical column in the analyzed, which may still be somewhat ambiguos as to what it is
     /// </summary>
-    /*package private*/class HypotheticalColumn
+    /*package private*/class HypotheticalColumn 
 
     {
+        /// <summary>
+        /// Clone the content of this column into that column
+        /// </summary>
+        /// <param name="that"></param>
+        /// <returns></returns>
+        public HypotheticalColumn CloneContentTo(HypotheticalColumn that)
+        {
+            that.header_y=header_y;       
+            that.column_x=column_x;       
+            that.height  =height;
+            return that;
+        }
+
         /// <summary>
         /// How many different things can this column be
         /// </summary>
@@ -23,6 +38,7 @@ namespace DocumentAnalysis
         public int header_y { get; set; } 
         public int column_x { get; set;} 
         public int height { get; set; } = 0;
+
     }
 
 }
