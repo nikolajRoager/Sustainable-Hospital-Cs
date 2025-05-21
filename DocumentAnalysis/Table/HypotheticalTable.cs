@@ -65,13 +65,13 @@ namespace DocumentAnalysis
         }
 
 
-/// <summary>
-/// Add a potential column to this potential table, the table takes care of registering it correctly
-/// </summary>
-/// <param name="column"></param>
+        /// <summary>
+        /// Add a potential column to this potential table, the table takes care of registering it correctly
+        /// </summary>
+        /// <param name="column"></param>
         public void Add(HypotheticalColumn column)
         {
-            column.header_y=y0;
+            column.header_y = y0;
             Columns.Add(column);
         }
     }

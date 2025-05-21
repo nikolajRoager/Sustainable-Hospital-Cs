@@ -171,10 +171,12 @@ namespace RegexAnalyzer
 
             //Now, even if this can be a header, check if it could also be a product           
             bool ProductMatch_found = false;
+            IProduct? foundproduct=null;
             foreach (var product in Products)
                 if (product.KeyRegex.IsMatch(cell_input))
                 {
-                    ProductMatch_found= true;
+                    foundproduct = product;
+                    ProductMatch_found = true;
                     break;
                 }
             
@@ -248,26 +250,28 @@ namespace RegexAnalyzer
                 return new AnalyzedString(cell_input);
             
             //Otherwise, let us create an analyzed string with our best estimates
-            return new AnalyzedString{
-                content=cell_input,
-                filler=1,//Filler is always an option
+            return new AnalyzedString
+            {
+                content = cell_input,
+                filler = 1,//Filler is always an option
                 //Give both the same weight
                 //If singlefound == totalfound, the mass can be either or,
-                containsTotalMass=(mass_found ) ? ((singleFound ==totalFound) ? 10 : (totalFound) ? 10 : 0) :0,
-                containsSingleMass=(mass_found ) ? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) :0,
-                isInteger =0,
-                isDecimal= 0,
-                intValue =amount,
-                doubleValue=mass,
-                productNameHeader=productHeader_found?10:0,//Give any headers found same weight
-                NrHeader=NrHeader_found?10:0,
-                SingleMassHeader=MassHeader_found? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
-                TotalMassHeader=MassHeader_found ? ((singleFound ==totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
-                QuantityHeader=QuantityHeader_found ?10:0,    
-                containsAmount=AmountMatch_found ?10:0,
-                containsProduct=ProductMatch_found?10:0,
-                containsProductNr=ProductNrMatch_found?10:AmountMatch_found?5:0,//Something which looks like amount can also be product number
-                ProductNr= ProductNrMatch_found?productNrMatch:AmountMatch_found?$"{amount}":"null"//The "amount" might be a product number
+                containsTotalMass = (mass_found) ? ((singleFound == totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
+                containsSingleMass = (mass_found) ? ((singleFound == totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
+                isInteger = 0,
+                isDecimal = 0,
+                intValue = amount,
+                massValue = mass,
+                productNameHeader = productHeader_found ? 10 : 0,//Give any headers found same weight
+                NrHeader = NrHeader_found ? 10 : 0,
+                SingleMassHeader = MassHeader_found ? ((singleFound == totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
+                TotalMassHeader = MassHeader_found ? ((singleFound == totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
+                QuantityHeader = QuantityHeader_found ? 10 : 0,
+                containsAmount = AmountMatch_found ? 10 : 0,
+                containsProduct = ProductMatch_found ? 10 : 0,
+                containsProductNr = ProductNrMatch_found ? 10 : AmountMatch_found ? 5 : 0,//Something which looks like amount can also be product number
+                ProductNr = ProductNrMatch_found ? productNrMatch : AmountMatch_found ? $"{amount}" : "null",//The "amount" might be a product number
+                Product = foundproduct
             };
         }
 
@@ -341,10 +345,12 @@ namespace RegexAnalyzer
 
             //Now, even if this can be a header, check if it could also be a product           
             bool ProductMatch_found = false;
+            IProduct? foundproduct=null;
             foreach (var product in Products)
                 if (product.KeyRegex.IsMatch(cell_input))
                 {
-                    ProductMatch_found= true;
+                    foundproduct = product;
+                    ProductMatch_found = true;
                     break;
                 }
                 else
@@ -353,6 +359,7 @@ namespace RegexAnalyzer
                     var keywordList = product.keyWordList();
                     if (Fuzz.PartialRatio(String.Join(" ", keywordList),cell_input)>80)
                     {
+                        foundproduct = product;
                         ProductMatch_found = true;
                         break;
                     }
@@ -428,26 +435,28 @@ namespace RegexAnalyzer
                 return new AnalyzedString(cell_input);
             
             //Otherwise, let us create an analyzed string with our best estimates
-            return new AnalyzedString{
-                content=cell_input,
-                filler=1,//Filler is always an option
+            return new AnalyzedString
+            {
+                content = cell_input,
+                filler = 1,//Filler is always an option
                 //Give both the same weight
                 //If singlefound == totalfound, the mass can be either or,
-                containsTotalMass=(mass_found ) ? ((singleFound ==totalFound) ? 10 : (totalFound) ? 10 : 0) :0,
-                containsSingleMass=(mass_found ) ? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) :0,
-                isInteger =0,
-                isDecimal= 0,
-                intValue =amount,
-                doubleValue=mass,
-                productNameHeader=productHeader_found?10:0,//Give any headers found same weight
-                NrHeader=NrHeader_found?10:0,
-                SingleMassHeader=MassHeader_found? ((singleFound ==totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
-                TotalMassHeader=MassHeader_found ? ((singleFound ==totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
-                QuantityHeader=QuantityHeader_found ?10:0,    
-                containsAmount=AmountMatch_found ?10:0,
-                containsProduct=ProductMatch_found?10:0,
-                containsProductNr=ProductNrMatch_found?10:AmountMatch_found?5:0,//Something which looks like amount can also be product number
-                ProductNr= ProductNrMatch_found?productNrMatch:AmountMatch_found?$"{amount}":"null"//The "amount" might be a product number
+                containsTotalMass = (mass_found) ? ((singleFound == totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
+                containsSingleMass = (mass_found) ? ((singleFound == totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
+                isInteger = 0,
+                isDecimal = 0,
+                intValue = amount,
+                massValue = mass,
+                productNameHeader = productHeader_found ? 10 : 0,//Give any headers found same weight
+                NrHeader = NrHeader_found ? 10 : 0,
+                SingleMassHeader = MassHeader_found ? ((singleFound == totalFound) ? 10 : (singleFound) ? 10 : 0) : 0,
+                TotalMassHeader = MassHeader_found ? ((singleFound == totalFound) ? 10 : (totalFound) ? 10 : 0) : 0,
+                QuantityHeader = QuantityHeader_found ? 10 : 0,
+                containsAmount = AmountMatch_found ? 10 : 0,
+                containsProduct = ProductMatch_found ? 10 : 0,
+                containsProductNr = ProductNrMatch_found ? 10 : AmountMatch_found ? 5 : 0,//Something which looks like amount can also be product number
+                ProductNr = ProductNrMatch_found ? productNrMatch : AmountMatch_found ? $"{amount}" : "null",//The "amount" might be a product number
+                Product = foundproduct
             };
         }
         

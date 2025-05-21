@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Net.Http.Headers;
 using System.Security.Cryptography.Pkcs;
 using OfficeOpenXml;
 using StringAnalyzer;
@@ -45,81 +46,85 @@ namespace DocumentAnalysis
                 Dictionary<string,Color> Legend=new();
 
                 for (int y = 0; y < height; ++y)
-                for (int x = 0; x < width; ++x)
                 {
-                    var cell = newSheet.Cells[y+1,x+1];
-                    //Get only the various chances of being whatever
-                    if (cell!=null)
-                    {
-                        var type = stringAnalyzer.Analyze(cell?.Value?.ToString());
-                        ThisOut.Cells[y,x] = type;
-
-                        //If need be, generate a unique name and colour for thsi combination
-                        if (visual)
+                    if (y % 100 == 0)
+                        Console.WriteLine($"{y}/{height}");
+                for (int x = 0; x < width; ++x)
                         {
-                            string name =
-                                $"{(type.filler>0?$"{type.filler*100/type.total}% filler,":"")}"+
-                                $"{(type.containsTotalMass>0?$"{type.containsTotalMass*100/type.total}% containsTotalMass,":"")}"+ 
-                                $"{(type.containsSingleMass>0?$"{type.containsSingleMass*100/type.total}% containsSingleMass,":"")}"+
-                                $"{(type.isInteger>0?$"{type.isInteger*100/type.total}% isInteger,":"")}"+ 
-                                $"{(type.isDecimal>0?$"{type.isDecimal*100/type.total}% isDecimal,":"")}"+ 
-                                $"{(type.containsProduct>0?$"{type.containsProduct*100/type.total}% containsProduct,":"")}"+ 
-                                $"{(type.containsProductNr>0?$"{type.containsProductNr*100/type.total}% containsProductNr,":"")}"+ 
-                                $"{(type.containsAmount>0?$"{type.containsAmount*100/type.total}% containsAmount,":"")}"+ 
-                                $"{(type.productNameHeader>0?$"{type.productNameHeader*100/type.total}% productNameHeader,":"")}"+  
-                                $"{(type.NrHeader>0?$"{type.NrHeader*100/type.total}% NrHeader,":"")}"+ 
-                                $"{(type.SingleMassHeader>0?$"{type.SingleMassHeader*100/type.total}% SingleMassHeader,":"")}"+ 
-                                $"{(type.TotalMassHeader>0?$"{type.TotalMassHeader*100/type.total}% TotalMassHeader,":"")}"+ 
-                                $"{(type.QuantityHeader>0?$"{type.QuantityHeader*100/type.total}% QuantityHeader,":"")}";
-                            //Generate the colour
-                            int colorR=(
-                                Color.Salmon.R *type.filler+
-                                Color.DarkRed.R*type.containsTotalMass+
-                                Color.Red.R    *type.containsSingleMass+
-                                Color.Brown.R  *type.isInteger+
-                                Color.Yellow.R *type.isDecimal+
-                                Color.Blue.R   *type.containsAmount+
-                                Color.Green.R  *type.containsProduct+
-                                Color.LightGreen.R*type.productNameHeader+
-                                Color.LightSalmon.R*type.NrHeader+
-                                Color.LightPink.R*type.SingleMassHeader+
-                                Color.Pink.R*type.TotalMassHeader+
-                                Color.Cyan.R*type.QuantityHeader)/type.total;
-                            int colorG=(
-                                Color.Salmon.G *type.filler+
-                                Color.DarkRed.R*type.containsTotalMass+
-                                Color.Red.R    *type.containsSingleMass+
-                                Color.Brown.G  *type.isInteger+
-                                Color.Yellow.G *type.isDecimal+
-                                Color.Blue.G   *type.containsAmount+
-                                Color.Green.G  *type.containsProduct+
-                                Color.LightGreen.G*type.productNameHeader+
-                                Color.LightSalmon.G*type.NrHeader+
-                                Color.LightPink.G*type.SingleMassHeader+
-                                Color.Pink.G*type.TotalMassHeader+
-                                Color.Cyan.G*type.QuantityHeader)/type.total;
-                            int colorB=(
-                                Color.Salmon.B *type.filler+
-                                Color.DarkRed.B*type.containsTotalMass+
-                                Color.Red.R    *type.containsSingleMass+
-                                Color.Brown.B  *type.isInteger+
-                                Color.Yellow.B *type.isDecimal+
-                                Color.Blue.B   *type.containsAmount+
-                                Color.Green.B  *type.containsProduct+
-                                Color.LightGreen.B*type.productNameHeader+
-                                Color.LightSalmon.B*type.NrHeader+
-                                Color.LightPink.B*type.SingleMassHeader+
-                                Color.Pink.B*type.TotalMassHeader+
-                                Color.Cyan.B*type.QuantityHeader)/type.total;
-
-                            if (type.filler!=type.total)
+                            var cell = newSheet.Cells[y + 1, x + 1];
+                            //Get only the various chances of being whatever
+                            if (cell != null)
                             {
-                                Color col =Color.FromArgb(colorR, colorG, colorB);
-                                Legend[name] = col;
-                                cell?.Style.Fill.SetBackground(col,OfficeOpenXml.Style.ExcelFillStyle.Solid);
+                                var type = stringAnalyzer.Analyze(cell?.Value?.ToString());
+                                ThisOut.Cells[y, x] = type;
+
+                                //If need be, generate a unique name and colour for thsi combination
+                                if (visual)
+                                {
+                                    string name =
+                                        $"{(type.filler > 0 ? $"{type.filler * 100 / type.total}% filler," : "")}" +
+                                        $"{(type.containsTotalMass > 0 ? $"{type.containsTotalMass * 100 / type.total}% containsTotalMass," : "")}" +
+                                        $"{(type.containsSingleMass > 0 ? $"{type.containsSingleMass * 100 / type.total}% containsSingleMass," : "")}" +
+                                        $"{(type.isInteger > 0 ? $"{type.isInteger * 100 / type.total}% isInteger," : "")}" +
+                                        $"{(type.isDecimal > 0 ? $"{type.isDecimal * 100 / type.total}% isDecimal," : "")}" +
+                                        $"{(type.containsProduct > 0 ? $"{type.containsProduct * 100 / type.total}% containsProduct," : "")}" +
+                                        $"{(type.containsProductNr > 0 ? $"{type.containsProductNr * 100 / type.total}% containsProductNr," : "")}" +
+                                        $"{(type.containsAmount > 0 ? $"{type.containsAmount * 100 / type.total}% containsAmount," : "")}" +
+                                        $"{(type.productNameHeader > 0 ? $"{type.productNameHeader * 100 / type.total}% productNameHeader," : "")}" +
+                                        $"{(type.NrHeader > 0 ? $"{type.NrHeader * 100 / type.total}% NrHeader," : "")}" +
+                                        $"{(type.SingleMassHeader > 0 ? $"{type.SingleMassHeader * 100 / type.total}% SingleMassHeader," : "")}" +
+                                        $"{(type.TotalMassHeader > 0 ? $"{type.TotalMassHeader * 100 / type.total}% TotalMassHeader," : "")}" +
+                                        $"{(type.QuantityHeader > 0 ? $"{type.QuantityHeader * 100 / type.total}% QuantityHeader," : "")}";
+                                    //Generate the colour
+                                    int colorR = (
+                                        Color.Salmon.R * type.filler +
+                                        Color.DarkRed.R * type.containsTotalMass +
+                                        Color.Red.R * type.containsSingleMass +
+                                        Color.Brown.R * type.isInteger +
+                                        Color.Yellow.R * type.isDecimal +
+                                        Color.Blue.R * type.containsAmount +
+                                        Color.Green.R * type.containsProduct +
+                                        Color.LightGreen.R * type.productNameHeader +
+                                        Color.LightSalmon.R * type.NrHeader +
+                                        Color.LightPink.R * type.SingleMassHeader +
+                                        Color.Pink.R * type.TotalMassHeader +
+                                        Color.Cyan.R * type.QuantityHeader) / type.total;
+                                    int colorG = (
+                                        Color.Salmon.G * type.filler +
+                                        Color.DarkRed.R * type.containsTotalMass +
+                                        Color.Red.R * type.containsSingleMass +
+                                        Color.Brown.G * type.isInteger +
+                                        Color.Yellow.G * type.isDecimal +
+                                        Color.Blue.G * type.containsAmount +
+                                        Color.Green.G * type.containsProduct +
+                                        Color.LightGreen.G * type.productNameHeader +
+                                        Color.LightSalmon.G * type.NrHeader +
+                                        Color.LightPink.G * type.SingleMassHeader +
+                                        Color.Pink.G * type.TotalMassHeader +
+                                        Color.Cyan.G * type.QuantityHeader) / type.total;
+                                    int colorB = (
+                                        Color.Salmon.B * type.filler +
+                                        Color.DarkRed.B * type.containsTotalMass +
+                                        Color.Red.R * type.containsSingleMass +
+                                        Color.Brown.B * type.isInteger +
+                                        Color.Yellow.B * type.isDecimal +
+                                        Color.Blue.B * type.containsAmount +
+                                        Color.Green.B * type.containsProduct +
+                                        Color.LightGreen.B * type.productNameHeader +
+                                        Color.LightSalmon.B * type.NrHeader +
+                                        Color.LightPink.B * type.SingleMassHeader +
+                                        Color.Pink.B * type.TotalMassHeader +
+                                        Color.Cyan.B * type.QuantityHeader) / type.total;
+
+                                    if (type.filler != type.total)
+                                    {
+                                        Color col = Color.FromArgb(colorR, colorG, colorB);
+                                        Legend[name] = col;
+                                        cell?.Style.Fill.SetBackground(col, OfficeOpenXml.Style.ExcelFillStyle.Solid);
+                                    }
+                                }
                             }
                         }
-                    }
 
                     //If need be, add description of what the colours mean
                     if (visual)
@@ -154,7 +159,7 @@ namespace DocumentAnalysis
                 var tables = secondPass(documents[i],noAdd);
 
                 foreach (var table in tables)
-                    thirdPass(table);
+                    thirdPass(documents[i],table);
 
                 if (visual)
                 {
@@ -171,7 +176,7 @@ namespace DocumentAnalysis
 
                             //Update header to say what we think it is
                             newSheet.Cells[table.y0+1,col.column_x+1].Value =
-                                $"{(col.couldBeProduct ? $"PRODUKT {table.Columns.Count(c=>c.couldBeProduct)}, ":"" )}{(col.couldBeNumber? $"VARENR  {table.Columns.Count(c=>c.couldBeNumber)}, ":"" )}{(col.couldBeAmount? $"ANTAL {table.Columns.Count(c=>c.couldBeAmount)}, ":"" )}{(col.couldBeSingleMass? $"STK. MASSE {table.Columns.Count(c=>c.couldBeSingleMass)}, ":"" )}{(col.couldBeSingleMass? $"TOTAL MASSE {table.Columns.Count(c=>c.couldBeTotalMass)}":"" )}";
+                                $"{(col.couldBeProduct ? $"PRODUKT {table.Columns.Count(c=>c.couldBeProduct)}, ":"" )}{(col.couldBeNumber? $"VARENR  {table.Columns.Count(c=>c.couldBeNumber)}, ":"" )}{(col.couldBeAmount? $"ANTAL {table.Columns.Count(c=>c.couldBeAmount)}, ":"" )}{(col.couldBeSingleMass? $"STK. MASSE {table.Columns.Count(c=>c.couldBeSingleMass)}, ":"" )}{(col.couldBeTotalMass? $"TOTAL MASSE {table.Columns.Count(c=>c.couldBeTotalMass)}":"" )}";
 
                             for (int y = table.y0+1; y <table.y1; ++y)
                             {
@@ -352,8 +357,6 @@ namespace DocumentAnalysis
                         break;
                 }
 
-            if (table.Columns.Count(c=>c.couldBeProduct)>1)
-                throw new Exception("Tabel med mere end en produktkollone fundet... eller også er excel dokumentet ikke et format vi kan analysere");
                 //Now drop any tables which are obviously incomplete
                 if (table.missingEssential || table.y0+1==table.y1)
                 {
@@ -364,10 +367,215 @@ namespace DocumentAnalysis
             return tables.Values;
         }
 
-        public hypotheticalTable? thirdPass(hypotheticalTable table)
+        /// <summary>
+        /// Generate all legal possibilities given the rule that:
+        /// only 1 product column, if there are multiple they must be empty when the other column is not
+        /// Sum of unit mass times amount must be total mass; there may be up to 3 columns with unit mass, these may be dublicate or sum up to total mass
+        /// Total mass and amount must be exactly once, product number may be 0 to 2 times
+        /// </summary>
+        /// <param name="table"></param>
+        /// <returns></returns>
+        public hypotheticalTable? thirdPass(FirstAnalysisDocument analyzedStrings, hypotheticalTable table)
         {
-
+            //First generate all possible tables of columns, using the binary signature
+            List<List<HypotheticalColumn>> columnOptions = new();
+            foreach (HypotheticalColumn col in table.Columns)
             {
+                List<HypotheticalColumn> ThisColumnOptions = new();
+                //Create all columns based on the signature, allowed signatures are these:
+                int[] legalSignatures =
+                {
+                    0b10000,
+                    0b11000,
+                    0b10100,
+                    0b11100,
+                    0b10010,
+                    0b11010,
+                    0b10110,
+                    0b11110,
+                    0b10001,
+                    0b11001,
+                    0b10101,
+                    0b11101,
+                    0b01000,
+                    0b00100,
+                    0b00010,
+                    0b00001
+                };
+                //Include the optioin that this column is nothing
+                ThisColumnOptions.Add(
+        new HypotheticalColumn
+                        {
+                            column_x = col.column_x,
+                            header_y = col.header_y,
+                            signature = 0,
+                        }
+                );
+
+                Console.WriteLine($"y {col.header_y} x {col.column_x} product {col.couldBeProduct} number {col.couldBeNumber} amount {col.couldBeAmount} single {col.couldBeSingleMass} total {col.couldBeTotalMass}");
+                
+                foreach (int sig in legalSignatures)
+                {
+                    //This means this legal signature is legal
+                    if ((sig & col.signature) == sig)
+                    {
+                        //This is the possible column this could be
+                        HypotheticalColumn newCol = new HypotheticalColumn
+                        {
+                            column_x = col.column_x,
+                            header_y = col.header_y,
+                            signature = sig,
+                        };
+                        //Add this, if the signature isn't already there
+                        if (ThisColumnOptions.Count(c => c.signature == sig) == 0)
+                            ThisColumnOptions.Add(newCol);
+                    }
+                }
+                columnOptions.Add(ThisColumnOptions);
+            }
+
+            //Now loop through each and every option, these indices are where in the looping over each column we are
+            List<int> indices = new List<int>();
+            for (int i = 0; i < table.Columns.Count; ++i)
+                indices.Add(0);
+
+            while (indices[table.Columns.Count-1] < columnOptions[table.Columns.Count-1].Count())
+            {
+
+                bool reject = false;
+                int numberCol= -1;//-1 = not found
+                int amountCol= -1;
+                int productCol= -1;
+                int nMassColFound = 0;
+                for (int i = 0; i < indices.Count; ++i)
+                {
+                    var col = columnOptions[i][indices[i]];
+                    if (col.couldBeNumber)
+                    {
+                        //Only one column with product number allowed
+                        if (numberCol != -1)
+                        {
+                            reject = true;
+                            break;
+                        }
+                        numberCol = i;
+                    }
+                    //Only one product
+                    if (col.couldBeProduct)
+                    {
+                        if (productCol != -1)
+                        {
+                            reject = true;
+                            break;
+                        }
+                        productCol = i;
+                    }
+                    //Only one product
+                    if (col.couldBeAmount)
+                    {
+                        if (amountCol != -1)
+                        {
+                            reject = true;
+                            break;
+                        }
+                        amountCol = i;
+                    }
+                    if (col.couldBeTotalMass || col.couldBeSingleMass)
+                    {
+                        ++nMassColFound;
+                    }
+
+                }
+                if (reject || amountCol == -1 || productCol == -1 || numberCol == -1 || nMassColFound==0)
+                {/*This is not a legal option, ignore*/}
+                else
+                {
+
+                    //Now check the legality of mass, single mass must be = total mass for every row
+                    //Also verify that product numbers are unique to prodducts
+                    Dictionary<string,IProduct> productNumberPairs = new();
+                    for (int y = table.y0+1; y < table.y1; y++)
+                    {
+                        string productNr = analyzedStrings.Cells[y, columnOptions[numberCol][indices[numberCol]].column_x].content; 
+                        IProduct? product = analyzedStrings.Cells[y, columnOptions[productCol][indices[productCol]].column_x].Product;
+                        if (product == null || (productNumberPairs.ContainsKey(productNr) && productNumberPairs[productNr] != product))
+                        {
+                            reject = true;
+                            break;
+                        }
+                        else
+                        {
+                            productNumberPairs[productNr] = product;
+
+                        }
+
+                        double totalMass = 0;
+                        double singleMass = 0;
+                        double amount = 0;
+                        for (int i = 0; i < indices.Count; ++i)
+                        {
+                            var col = columnOptions[i][indices[i]];
+
+                            if (col.couldBeAmount)
+                            {
+                                amount += analyzedStrings.Cells[y, col.column_x].doubleValue;
+                            }
+                            else if (col.couldBeSingleMass)
+                                singleMass += analyzedStrings.Cells[y, col.column_x].massValue;
+                            else if (col.couldBeTotalMass)
+                                totalMass += analyzedStrings.Cells[y, col.column_x].massValue;
+                        }
+                        //The exact match is not a bug, we are checking if single or total mass has never been modified (it didn't exist in the dataset)
+                        if (singleMass == 0 && totalMass != 0)
+                        {
+                            //Calculate the single mass from the amount
+                            singleMass = totalMass / amount;
+
+                        }
+                        else if (singleMass == 0 && totalMass != 0)
+                        {
+                            totalMass = singleMass * amount;
+                        }
+                        else if (!(singleMass * amount > totalMass - 0.1 && singleMass * amount < totalMass + 0.1))
+                            {
+                                reject = true;
+                                break;
+                            }
+                    }
+
+
+                    if (!reject)
+                        {
+                            for (int i = 0; i < indices.Count; ++i)
+                            {
+                                var col = columnOptions[i][indices[i]];
+                                Console.Write($"{i}: y {col.header_y} x {col.column_x}: ");
+                                if (col.couldBeProduct)
+                                    Console.WriteLine("Product");
+                                else if (col.couldBeNumber)
+                                    Console.WriteLine("Number");
+                                else if (col.couldBeAmount)
+                                    Console.WriteLine("Amount");
+                                else if (col.couldBeSingleMass)
+                                    Console.WriteLine("Single Mass");
+                                else if (col.couldBeTotalMass)
+                                    Console.WriteLine("Total Mass");
+                                else
+                                    Console.WriteLine("None");
+                            }
+                        }
+
+                }
+                //Increment the index and wrap around
+                ++indices[0];
+                for (int i = 0; i+1 < indices.Count; ++i)
+                {
+                    if (indices[i] >= columnOptions[i].Count)
+                    {
+                        indices[i] = 0;
+                        indices[i + 1]++;
+                    }
+                }
             }
             return null;
         }

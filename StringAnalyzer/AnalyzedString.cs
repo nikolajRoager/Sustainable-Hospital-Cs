@@ -100,6 +100,10 @@ namespace StringAnalyzer
         /// </summary>
         public double doubleValue {get;set;}= 0;
         /// <summary>
+        /// If a generic double has been found, what is it
+        /// </summary>
+        public double massValue {get;set;}= 0;
+        /// <summary>
         /// If product number has been found, what is it
         /// </summary>
         public string ProductNr {get;set;}
@@ -124,9 +128,10 @@ namespace StringAnalyzer
             QuantityHeader=0;    
             containsProduct= 0;
             Product = null;
-            intValue =0;    
+            intValue =0;
             doubleValue=0;
-            content=c;
+            massValue = 0;
+            content =c;
             ProductNr="null";
         }
 
@@ -144,6 +149,7 @@ namespace StringAnalyzer
             isDecimal= 0;
             intValue =0;    
             doubleValue=0;
+            massValue = 0;
             containsAmount=0;
             productNameHeader=0;
             NrHeader=0;
@@ -174,7 +180,8 @@ namespace StringAnalyzer
             isDecimal= 0;
             this.intValue =intValue;    
             this.doubleValue=intValue;
-            productNameHeader=0;
+            massValue = intValue;
+            productNameHeader =0;
             NrHeader=0;
             SingleMassHeader=0;
             TotalMassHeader=0;
@@ -201,6 +208,7 @@ namespace StringAnalyzer
             containsProductNr =(doubleValue==(int)(doubleValue) ? 1 :0);//I highly doubt this is product nr BUT IT COULD BE
             this.intValue =(int)doubleValue;    
             this.doubleValue=doubleValue;
+            massValue = doubleValue;
             productNameHeader=0;
             NrHeader=0;
             SingleMassHeader=0;
@@ -229,6 +237,7 @@ namespace StringAnalyzer
                 containsProductNr=this.containsProductNr,
                 intValue=0,
                 doubleValue=0,
+                massValue = 0,
                 NrHeader=this.NrHeader,
                 SingleMassHeader=this.SingleMassHeader,
                 TotalMassHeader=this.TotalMassHeader,
