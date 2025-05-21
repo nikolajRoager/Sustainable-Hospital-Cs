@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Net.Http.Headers;
 using System.Security.Cryptography.Pkcs;
 using OfficeOpenXml;
+using OfficeOpenXml.Packaging.Ionic.Zip;
 using StringAnalyzer;
 using UserInterface;
 
@@ -155,32 +156,73 @@ namespace DocumentAnalysis
             UI.WriteLine("Anden analyse");
             for (int i = 0; i < documents.Count; ++i)
             {
-                UI.WriteLine($"{i+1}/{documents.Count}");
+                HashSet<OutputTable> outputTables=new();
+                UI.WriteLine($"\t{i+1}/{documents.Count}");
                 var tables = secondPass(documents[i],noAdd);
 
+                UI.WriteLine($"\tTredje analyse");
                 foreach (var table in tables)
-                    thirdPass(documents[i],table);
+                {
+                    var Out = thirdPass(documents[i],table);
+                    if (Out != null)
+                        outputTables.Add(Out);
+                }
 
                 if (visual)
                 {
-                    //copy the original sheet
-                    var newSheet = package.Workbook.Worksheets.Copy(documents[i].Name,"SecondPass"+(documents.Count>1?$"{i}":"")) ;
-                    
-                    foreach (var table in tables)
+                    //Make the second pass visual
                     {
-                        for (int x = table.x0; x <=table.x1; ++x)
-                            newSheet.Cells[table.y0+1,x+1].Style.Fill.SetBackground(Color.Red,OfficeOpenXml.Style.ExcelFillStyle.Solid);
-                        foreach (var col in table.Columns)
+                        //copy the original sheet
+                        var newSheet = package.Workbook.Worksheets.Copy(documents[i].Name, "SecondPass" + (documents.Count > 1 ? $"{i}" : ""));
+
+                        foreach (var table in tables)
                         {
-                            newSheet.Cells[table.y0+1,col.column_x+1].Style.Fill.SetBackground(Color.DarkGreen,OfficeOpenXml.Style.ExcelFillStyle.Solid);
-
-                            //Update header to say what we think it is
-                            newSheet.Cells[table.y0+1,col.column_x+1].Value =
-                                $"{(col.couldBeProduct ? $"PRODUKT {table.Columns.Count(c=>c.couldBeProduct)}, ":"" )}{(col.couldBeNumber? $"VARENR  {table.Columns.Count(c=>c.couldBeNumber)}, ":"" )}{(col.couldBeAmount? $"ANTAL {table.Columns.Count(c=>c.couldBeAmount)}, ":"" )}{(col.couldBeSingleMass? $"STK. MASSE {table.Columns.Count(c=>c.couldBeSingleMass)}, ":"" )}{(col.couldBeTotalMass? $"TOTAL MASSE {table.Columns.Count(c=>c.couldBeTotalMass)}":"" )}";
-
-                            for (int y = table.y0+1; y <table.y1; ++y)
+                            for (int x = table.x0; x <= table.x1; ++x)
+                                newSheet.Cells[table.y0 + 1, x + 1].Style.Fill.SetBackground(Color.Red, OfficeOpenXml.Style.ExcelFillStyle.Solid);
+                            foreach (var col in table.Columns)
                             {
-                                newSheet.Cells[y+1,col.column_x+1].Style.Fill.SetBackground(col.column_x%2==0 ? Color.Green : Color.SeaGreen,OfficeOpenXml.Style.ExcelFillStyle.Solid);
+                                newSheet.Cells[table.y0 + 1, col.column_x + 1].Style.Fill.SetBackground(Color.DarkGreen, OfficeOpenXml.Style.ExcelFillStyle.Solid);
+
+                                //Update header to say what we think it is
+                                newSheet.Cells[table.y0 + 1, col.column_x + 1].Value =
+                                    $"{(col.couldBeProduct ? $"PRODUKT {table.Columns.Count(c => c.couldBeProduct)}, " : "")}{(col.couldBeNumber ? $"VARENR  {table.Columns.Count(c => c.couldBeNumber)}, " : "")}{(col.couldBeAmount ? $"ANTAL {table.Columns.Count(c => c.couldBeAmount)}, " : "")}{(col.couldBeSingleMass ? $"STK. MASSE {table.Columns.Count(c => c.couldBeSingleMass)}, " : "")}{(col.couldBeTotalMass ? $"TOTAL MASSE {table.Columns.Count(c => c.couldBeTotalMass)}" : "")}";
+
+                                for (int y = table.y0 + 1; y < table.y1; ++y)
+                                {
+                                    newSheet.Cells[y + 1, col.column_x + 1].Style.Fill.SetBackground(col.column_x % 2 == 0 ? Color.Green : Color.SeaGreen, OfficeOpenXml.Style.ExcelFillStyle.Solid);
+                                }
+                            }
+                        }
+                    }
+                    {
+                        //copy the original sheet
+                        var newSheet = package.Workbook.Worksheets.Add("ThirdPass" + (documents.Count > 1 ? $"{i}" : ""));
+                        newSheet.Cells[1, 1].Value = "varenavn oplyst";
+                        newSheet.Cells[1, 2].Value = "vare";
+                        newSheet.Cells[1, 3].Value = "ingrediens";
+                        newSheet.Cells[1, 4].Value = "kategori";
+                        newSheet.Cells[1, 5].Value = "Vare Nr.";
+                        newSheet.Cells[1, 6].Value = "Masse per styk";
+                        newSheet.Cells[1, 7].Value = "antal";
+                        newSheet.Cells[1, 8].Value = "Samlet masse";
+                        newSheet.Cells[1, 9].Value = "tabel";
+                        int row=2;
+                        int tableID = 0;
+                        foreach (var table in outputTables)
+                        {
+                            ++tableID;
+                            foreach (var line in table.lines)
+                            {
+                                newSheet.Cells[row, 1].Value = line.productNameFull;
+                                newSheet.Cells[row, 2].Value = line.productName;
+                                newSheet.Cells[row, 3].Value = line.material;
+                                newSheet.Cells[row, 4].Value = line.category;
+                                newSheet.Cells[row, 5].Value = line.number;
+                                newSheet.Cells[row, 6].Value = line.singleMass;
+                                newSheet.Cells[row, 7].Value = line.amount;
+                                newSheet.Cells[row, 8].Value = line.totalMass;
+                                newSheet.Cells[row, 9].Value = tableID;
+                                ++row;
                             }
                         }
                     }
@@ -375,7 +417,7 @@ namespace DocumentAnalysis
         /// </summary>
         /// <param name="table"></param>
         /// <returns></returns>
-        public hypotheticalTable? thirdPass(FirstAnalysisDocument analyzedStrings, hypotheticalTable table)
+        public OutputTable? thirdPass(FirstAnalysisDocument analyzedStrings, hypotheticalTable table)
         {
             //First generate all possible tables of columns, using the binary signature
             List<List<HypotheticalColumn>> columnOptions = new();
@@ -385,18 +427,12 @@ namespace DocumentAnalysis
                 //Create all columns based on the signature, allowed signatures are these:
                 int[] legalSignatures =
                 {
+                    //Product can at most be combined with 1 other thing... because anything else would be truly stupid, and I can't guarantee i grap the right thing
                     0b10000,
                     0b11000,
                     0b10100,
-                    0b11100,
                     0b10010,
-                    0b11010,
-                    0b10110,
-                    0b11110,
                     0b10001,
-                    0b11001,
-                    0b10101,
-                    0b11101,
                     0b01000,
                     0b00100,
                     0b00010,
@@ -405,15 +441,13 @@ namespace DocumentAnalysis
                 //Include the optioin that this column is nothing
                 ThisColumnOptions.Add(
         new HypotheticalColumn
-                        {
-                            column_x = col.column_x,
-                            header_y = col.header_y,
-                            signature = 0,
-                        }
+        {
+            column_x = col.column_x,
+            header_y = col.header_y,
+            signature = 0,
+        }
                 );
 
-                Console.WriteLine($"y {col.header_y} x {col.column_x} product {col.couldBeProduct} number {col.couldBeNumber} amount {col.couldBeAmount} single {col.couldBeSingleMass} total {col.couldBeTotalMass}");
-                
                 foreach (int sig in legalSignatures)
                 {
                     //This means this legal signature is legal
@@ -434,19 +468,24 @@ namespace DocumentAnalysis
                 columnOptions.Add(ThisColumnOptions);
             }
 
-            //Now loop through each and every option, these indices are where in the looping over each column we are
+            //Now loop through each and every option, and create a list of output tables, sorted by value, these indices are where in the looping over each column we are
+            List<OutputTable> bestOutputs = new();
+            int bestValue = -1;
             List<int> indices = new List<int>();
             for (int i = 0; i < table.Columns.Count; ++i)
                 indices.Add(0);
 
-            while (indices[table.Columns.Count-1] < columnOptions[table.Columns.Count-1].Count())
+            while (indices[table.Columns.Count - 1] < columnOptions[table.Columns.Count - 1].Count())
             {
 
                 bool reject = false;
-                int numberCol= -1;//-1 = not found
-                int amountCol= -1;
-                int productCol= -1;
+                int numberCol = -1;//-1 = not found
+                int amountCol = -1;
+                int productCol = -1;
                 int nMassColFound = 0;
+                //Having both makes this solution better, this stores the latest found
+                int singleMassCol = -1;
+                int totalMassCol = -1;
                 for (int i = 0; i < indices.Count; ++i)
                 {
                     var col = columnOptions[i][indices[i]];
@@ -480,23 +519,46 @@ namespace DocumentAnalysis
                         }
                         amountCol = i;
                     }
-                    if (col.couldBeTotalMass || col.couldBeSingleMass)
+                    if (col.couldBeTotalMass)
                     {
+                        totalMassCol = i;
+                        ++nMassColFound;
+                    }
+                    else if (col.couldBeSingleMass)
+                    {
+                        singleMassCol = i;
                         ++nMassColFound;
                     }
 
                 }
-                if (reject || amountCol == -1 || productCol == -1 || numberCol == -1 || nMassColFound==0)
-                {/*This is not a legal option, ignore*/}
+                //The best is something which has everything written already
+                int value = (numberCol != -1 ? 1 : 0) + (singleMassCol != -1 ? 1 : 0) + (totalMassCol != -1 ? 1 : 0);
+                if (reject || amountCol == -1 || productCol == -1 || nMassColFound == 0 || value < bestValue/*Disregard worse options*/)
+                {/*This is not a legal option, ignore*/
+                    reject = true;
+                }
                 else
                 {
+                    OutputTable thisOutput = new OutputTable
+                    {
+                        productCol = productCol,
+                        amountCol = amountCol,
+                        numberCol = numberCol,
+                        singleMassCol = singleMassCol,
+                        totalMassCol = totalMassCol,
+                    };
+
+
+                    //Add to the list of potential outputs, prioritize solutions which has everything
+
 
                     //Now check the legality of mass, single mass must be = total mass for every row
                     //Also verify that product numbers are unique to prodducts
-                    Dictionary<string,IProduct> productNumberPairs = new();
-                    for (int y = table.y0+1; y < table.y1; y++)
+                    Dictionary<string, IProduct> productNumberPairs = new();
+                    for (int y = table.y0 + 1; y < table.y1; y++)
                     {
-                        string productNr = analyzedStrings.Cells[y, columnOptions[numberCol][indices[numberCol]].column_x].content; 
+
+                        string productNr = numberCol == -1 ? "null" : analyzedStrings.Cells[y, columnOptions[numberCol][indices[numberCol]].column_x].content;
                         IProduct? product = analyzedStrings.Cells[y, columnOptions[productCol][indices[productCol]].column_x].Product;
                         if (product == null || (productNumberPairs.ContainsKey(productNr) && productNumberPairs[productNr] != product))
                         {
@@ -521,9 +583,23 @@ namespace DocumentAnalysis
                                 amount += analyzedStrings.Cells[y, col.column_x].doubleValue;
                             }
                             else if (col.couldBeSingleMass)
-                                singleMass += analyzedStrings.Cells[y, col.column_x].massValue;
+                            {
+                                if (singleMass == 0)
+                                    singleMass += analyzedStrings.Cells[y, col.column_x].massValue;
+                                else
+                                {
+                                    reject = true; break;
+                                }
+                            }
                             else if (col.couldBeTotalMass)
-                                totalMass += analyzedStrings.Cells[y, col.column_x].massValue;
+                            {
+                                if (totalMass == 0)
+                                    totalMass += analyzedStrings.Cells[y, col.column_x].massValue;
+                                else
+                                {
+                                    reject = true; break;
+                                }
+                            }
                         }
                         //The exact match is not a bug, we are checking if single or total mass has never been modified (it didn't exist in the dataset)
                         if (singleMass == 0 && totalMass != 0)
@@ -532,43 +608,44 @@ namespace DocumentAnalysis
                             singleMass = totalMass / amount;
 
                         }
-                        else if (singleMass == 0 && totalMass != 0)
+                        else if (totalMass == 0 && singleMass != 0)
                         {
                             totalMass = singleMass * amount;
                         }
                         else if (!(singleMass * amount > totalMass - 0.1 && singleMass * amount < totalMass + 0.1))
-                            {
-                                reject = true;
-                                break;
-                            }
+                        {
+                            reject = true;
+                            break;
+                        }
+                        OutputEntry line = new OutputEntry
+                        {
+                            productName = product.Keyword,
+                            productNameFull = analyzedStrings.Cells[y, columnOptions[productCol][indices[productCol]].column_x].content,
+                            amount = amount,
+                            number = productNr,
+                            category = product.Category,
+                            material = product.Material,
+                            totalMass = totalMass,
+                            singleMass = singleMass,
+                        };
+                        thisOutput.lines.Add(line);
                     }
 
-
                     if (!reject)
+                    {
+                        //Temp, should keep track of multiple if relevant
+                        if (bestValue < value)
                         {
-                            for (int i = 0; i < indices.Count; ++i)
-                            {
-                                var col = columnOptions[i][indices[i]];
-                                Console.Write($"{i}: y {col.header_y} x {col.column_x}: ");
-                                if (col.couldBeProduct)
-                                    Console.WriteLine("Product");
-                                else if (col.couldBeNumber)
-                                    Console.WriteLine("Number");
-                                else if (col.couldBeAmount)
-                                    Console.WriteLine("Amount");
-                                else if (col.couldBeSingleMass)
-                                    Console.WriteLine("Single Mass");
-                                else if (col.couldBeTotalMass)
-                                    Console.WriteLine("Total Mass");
-                                else
-                                    Console.WriteLine("None");
-                            }
+                            bestOutputs = new();
+                            bestValue = value;
                         }
+                        bestOutputs.Add(thisOutput);
+                    }
 
                 }
                 //Increment the index and wrap around
                 ++indices[0];
-                for (int i = 0; i+1 < indices.Count; ++i)
+                for (int i = 0; i + 1 < indices.Count; ++i)
                 {
                     if (indices[i] >= columnOptions[i].Count)
                     {
@@ -576,6 +653,26 @@ namespace DocumentAnalysis
                         indices[i + 1]++;
                     }
                 }
+            }
+            if (bestOutputs.Count == 0)
+            {
+                UI.WriteLine("Kunne ikke finde data i tabellen! Tabellen skal mindst indeholde 1 kolonne med produkt, 1 med enkelt og/eller total masse, 1 med mængde af enheder, og eventuelt 1 med varenummer!", true);
+                return null;
+            }
+            if (bestOutputs.Count == 1)
+            {
+                var option = bestOutputs.First();
+                UI.WriteLine($"Succesfuldt fandt data: Varenummer i søjle {(char)('A' + 1 + option.numberCol)}, vare i søjle {(char)('A' + 1 + option.productCol)}, antal i søjle {(char)('A' + 1 + option.amountCol)}, stykmasse i søjle {(char)('A' + 1 + option.singleMassCol)}, og samlet masse i  {(char)('A' + 1 + option.totalMassCol)}");
+                return option;
+            }
+            else if (bestOutputs.Count > 1)
+            {
+                List<string> options=new();
+                foreach (var option in bestOutputs)
+                {
+                    options.Add($"Varenummer {(option.numberCol==-1?"ikke fundet":$"i  {(char)('A'  + option.numberCol)}")}, vare i søjle {(char)('A' + option.productCol)}, antal i søjle {(char)('A'  + option.amountCol)}, stykmasse {(option.singleMassCol==-1?"ikke fundet":$"i  {(char)('A'  + option.singleMassCol)}")}, og samlet masse {(option.totalMassCol==-1?"ikke fundet":$"i {(char)('A'  + option.totalMassCol)}")}");
+                }
+                return bestOutputs[UI.selectOption("Den automatiske tabelgenkendelse har fundet flere potentielle tabeller i dokumentet, vælg venligst hvilken vi skal bruge;", options)];
             }
             return null;
         }

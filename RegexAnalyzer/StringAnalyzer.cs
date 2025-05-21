@@ -129,7 +129,7 @@ namespace RegexAnalyzer
             {
                 return new AnalyzedString(myIntValue,cell_input);
             }
-            else if (double.TryParse(cell_input, out double myDoubleValue))
+            else if (double.TryParse(cell_input.Replace(',', '.'), out double myDoubleValue))
             {
                 return new AnalyzedString(myDoubleValue,cell_input);
             }
@@ -233,7 +233,7 @@ namespace RegexAnalyzer
                 var match =(massRegex.Match(cell_input));
                 if (match.Success)
                 {
-                    if (!double.TryParse(match.Value, style, culture,out mass))
+                    if (!double.TryParse(match.Value.Replace(',', '.'), style, culture,out mass))
                     {
                         //It should be a double, if not ignore it
                         continue;
@@ -303,7 +303,7 @@ namespace RegexAnalyzer
             {
                 return new AnalyzedString(myIntValue,cell_input);
             }
-            else if (double.TryParse(cell_input, style, culture, out double myDoubleValue))
+            else if (double.TryParse(cell_input.Replace(',', '.'), style, culture, out double myDoubleValue))
             {
                 return new AnalyzedString(myDoubleValue,cell_input);
             }
@@ -415,10 +415,10 @@ namespace RegexAnalyzer
             //And finally, check if there are masses directly included in the text
             foreach ((Regex massRegex,double massKg) in MassUnitNames)
             {
-                var match =(massRegex.Match(cell_input));
+                var match =massRegex.Match(cell_input);
                 if (match.Success)
                 {
-                    if (!double.TryParse(match.Value, style, culture,out mass))
+                    if (!double.TryParse(match.Value.Replace(',', '.'), style, culture, out mass))
                     {
                         //It should be a double, if not ignore it
                         continue;
@@ -580,9 +580,10 @@ namespace RegexAnalyzer
                 /*
                     90kg
                     90.0kg
+                    90,0kg
                     6 -90.0 kg 5-343
                 */   
-                MassUnitNames[new Regex(@"\b\-?\d+(?:\.\d+?)?(?=\s?"+UnitCellString+@"\b)",RegexOptions.IgnoreCase)] = double.Parse(KgCellString);
+                MassUnitNames[new Regex(@"\b\-?\d+(?:[\.,]\d+?)?(?=\s?"+UnitCellString+@"\b)",RegexOptions.IgnoreCase)] = double.Parse(KgCellString);
             }
 
             /*
